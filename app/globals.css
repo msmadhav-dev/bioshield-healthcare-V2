@@ -1,26 +1,233 @@
 @import "tailwindcss";
+@import "tw-animate-css";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
+@custom-variant dark (&:is(.dark *));
 
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* ── ShadCN system tokens (don't change) ─────────── */
+  --color-background:                  var(--background);
+  --color-foreground:                  var(--foreground);
+  --color-card:                        var(--card);
+  --color-card-foreground:             var(--card-foreground);
+  --color-popover:                     var(--popover);
+  --color-popover-foreground:          var(--popover-foreground);
+  --color-primary:                     var(--primary);
+  --color-primary-foreground:          var(--primary-foreground);
+  --color-secondary:                   var(--secondary);
+  --color-secondary-foreground:        var(--secondary-foreground);
+  --color-muted:                       var(--muted);
+  --color-muted-foreground:            var(--muted-foreground);
+  --color-accent:                      var(--accent);
+  --color-accent-foreground:           var(--accent-foreground);
+  --color-destructive:                 var(--destructive);
+  --color-border:                      var(--border);
+  --color-input:                       var(--input);
+  --color-ring:                        var(--ring);
+  --color-chart-1:                     var(--chart-1);
+  --color-chart-2:                     var(--chart-2);
+  --color-chart-3:                     var(--chart-3);
+  --color-chart-4:                     var(--chart-4);
+  --color-chart-5:                     var(--chart-5);
+  --color-sidebar:                     var(--sidebar);
+  --color-sidebar-foreground:          var(--sidebar-foreground);
+  --color-sidebar-primary:             var(--sidebar-primary);
+  --color-sidebar-primary-foreground:  var(--sidebar-primary-foreground);
+  --color-sidebar-accent:              var(--sidebar-accent);
+  --color-sidebar-accent-foreground:   var(--sidebar-accent-foreground);
+  --color-sidebar-border:              var(--sidebar-border);
+  --color-sidebar-ring:                var(--sidebar-ring);
+
+  /* ════════════════════════════════════════════════════════════════
+     BIOSHIELD BRAND PALETTE — THE ONLY PLACE COLORS LIVE
+     Change these values, the entire site updates automatically.
+     Use as Tailwind classes:
+         bg-brand-purple, text-brand-green-dark, border-brand-purple-deep
+     ════════════════════════════════════════════════════════════════ */
+  --color-brand-purple:        #6B21A8;   /* Logo purple — primary */
+  --color-brand-purple-deep:   #4C1D95;   /* Deep purple — headings, accents */
+  --color-brand-green:         #22C55E;   /* Bright green — highlights */
+  --color-brand-green-mid:     #15803D;   /* Mid green */
+  --color-brand-green-dark:    #166534;   /* Button green */
+  --color-brand-green-deep:    #14532D;   /* Deepest green */
+  --color-brand-off-white:     #F7F7F7;   /* Off-white sections */
+  --color-brand-light-gray:    #F4F6F8;   /* Light gray sections */
+
+  /* ── Font ── */
+  --font-sans: var(--font-dm-sans), sans-serif;
+
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
 }
 
-@media (prefers-color-scheme: dark) {
+@layer base {
   :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+    /* ── ShadCN base tokens (mapped to brand purple) ── */
+    --background:              oklch(1 0 0);
+    --foreground:              oklch(0.145 0 0);
+    --card:                    oklch(1 0 0);
+    --card-foreground:         oklch(0.145 0 0);
+    --popover:                 oklch(1 0 0);
+    --popover-foreground:      oklch(0.145 0 0);
+    --primary:                 oklch(0.42 0.19 300);
+    --primary-foreground:      oklch(1 0 0);
+    --secondary:               oklch(0.72 0.19 145);
+    --secondary-foreground:    oklch(1 0 0);
+    --muted:                   oklch(0.97 0 0);
+    --muted-foreground:        oklch(0.556 0 0);
+    --accent:                  oklch(0.97 0 0);
+    --accent-foreground:       oklch(0.205 0 0);
+    --destructive:             oklch(0.577 0.245 27.325);
+    --border:                  oklch(0.922 0 0);
+    --input:                   oklch(0.922 0 0);
+    --ring:                    oklch(0.42 0.19 300);
+    --chart-1:                 oklch(0.646 0.222 41.116);
+    --chart-2:                 oklch(0.6 0.118 184.704);
+    --chart-3:                 oklch(0.398 0.07 227.392);
+    --chart-4:                 oklch(0.828 0.189 84.429);
+    --chart-5:                 oklch(0.769 0.188 70.08);
+    --radius:                  0.625rem;
+    --sidebar:                 oklch(0.985 0 0);
+    --sidebar-foreground:      oklch(0.145 0 0);
+    --sidebar-primary:         oklch(0.42 0.19 300);
+    --sidebar-primary-foreground: oklch(1 0 0);
+    --sidebar-accent:          oklch(0.97 0 0);
+    --sidebar-accent-foreground: oklch(0.205 0 0);
+    --sidebar-border:          oklch(0.922 0 0);
+    --sidebar-ring:            oklch(0.42 0.19 300);
+
+    /* ── Navbar tokens (point to brand colors above) ── */
+    --nav-bg:                  #FAFAFA;
+    --nav-border:              #EBEBEB;
+    --nav-link-color:          #374151;
+    --nav-active-color:        var(--color-brand-purple);
+    --nav-dropdown-hover-bg:   var(--color-brand-purple);
+    --nav-dropdown-hover-text: #FFFFFF;
+    --nav-cta-bg:              var(--color-brand-green-dark);
+    --nav-cta-hover:           var(--color-brand-green-deep);
+    --nav-mobile-accent:       var(--color-brand-purple);
   }
+
+  * {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    border-color: var(--border);
+  }
+
+  html { scroll-behavior: smooth; }
+
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-dm-sans), sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  ::-webkit-scrollbar       { width: 6px; }
+  ::-webkit-scrollbar-track { background: #f7f7f7; }
+  ::-webkit-scrollbar-thumb { background: var(--nav-mobile-accent); border-radius: 999px; }
+  ::-webkit-scrollbar-thumb:hover { background: var(--nav-active-color); }
 }
 
-body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+/* ── Reusable navbar classes ── */
+@layer components {
+
+  .nav-link {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    padding: 8px 16px;
+    font-size: 12.5px;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--nav-link-color);
+    transition: color 0.2s;
+  }
+  .nav-link:hover,
+  .nav-link.active {
+    color: var(--nav-active-color);
+  }
+
+  .nav-dropdown-item {
+    display: block;
+    padding: 10px 20px;
+    font-size: 12.5px;
+    font-weight: 500;
+    color: #4b5563;
+    transition: background-color 0.15s, color 0.15s;
+  }
+  .nav-dropdown-item:hover {
+    background-color: var(--nav-dropdown-hover-bg);
+    color: var(--nav-dropdown-hover-text);
+  }
+
+  .nav-cta {
+    margin-left: 16px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    padding: 9px 20px;
+    border-radius: 6px;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: #ffffff;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background-color: var(--nav-cta-bg);
+    transition: background-color 0.2s;
+  }
+  .nav-cta:hover {
+    background-color: var(--nav-cta-hover);
+  }
+
+  .nav-mobile-sub {
+    margin-bottom: 4px;
+    margin-left: 12px;
+    padding-left: 12px;
+    border-left: 2px solid var(--nav-mobile-accent);
+  }
+
+  .nav-mobile-link {
+    display: block;
+    padding: 8px 0;
+    font-size: 12.5px;
+    color: #6b7280;
+    transition: color 0.15s;
+  }
+  .nav-mobile-link:hover {
+    color: var(--nav-active-color);
+  }
+
+  .nav-mobile-cta {
+    margin: 16px 12px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 12px;
+    border-radius: 6px;
+    font-size: 13px;
+    font-weight: 600;
+    color: #ffffff;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    background-color: var(--nav-cta-bg);
+    transition: background-color 0.2s;
+  }
+  .nav-mobile-cta:hover {
+    background-color: var(--nav-cta-hover);
+  }
+
+  /* ── Brand gradient utility — use anywhere ── */
+  .brand-gradient {
+    background: linear-gradient(135deg, var(--color-brand-purple-deep) 0%, #2E1065 50%, #000000 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    color: transparent;
+  }
 }
