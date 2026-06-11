@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -37,8 +37,16 @@ const dropVariants = {
 };
 
 export default function Navbar() {
-  const pathname = usePathname();
+  const pathname               = usePathname();
   const [openDropdown, setOpenDropdown] = useState<string | null>(null);
+  const [showTooltip,  setShowTooltip]  = useState(false);
+
+  // Show tooltip on mount (mobile only), auto-hide after 3 seconds
+  useEffect(() => {
+    setShowTooltip(true);
+    const timer = setTimeout(() => setShowTooltip(false), 3000);
+    return () => clearTimeout(timer);
+  }, []);
 
   return (
     <header
@@ -58,7 +66,7 @@ export default function Navbar() {
             width={220}
             height={70}
             priority
-            className="h-[150px] w-auto object-contain"
+            className="h-[60px] w-auto object-contain"
             style={{ mixBlendMode: "multiply" }}
           />
         </Link>
@@ -104,9 +112,8 @@ export default function Navbar() {
                           exit="exit"
                           className="absolute top-full left-0 mt-[6px] w-[210px] bg-white rounded-lg py-2 z-50"
                           style={{
-                            boxShadow:
-                              "0 4px 24px rgba(0,0,0,0.09), 0 1px 4px rgba(0,0,0,0.06)",
-                            border: "1px solid var(--nav-border)",
+                            boxShadow: "0 4px 24px rgba(0,0,0,0.09), 0 1px 4px rgba(0,0,0,0.06)",
+                            border:    "1px solid var(--nav-border)",
                           }}
                         >
                           {link.dropdown.map((item) => (
@@ -133,18 +140,65 @@ export default function Navbar() {
           </Link>
         </nav>
 
-        {/* Mobile hamburger */}
-        <Sheet>
-          <SheetTrigger
-            className="lg:hidden p-2 rounded-md text-gray-700"
-            aria-label="Open menu"
-          >
-            <Menu size={22} />
-          </SheetTrigger>
-          <SheetContent side="right" className="w-[280px] p-0 bg-white">
-            <MobileNav />
-          </SheetContent>
-        </Sheet>
+        {/* Mobile — shop icon + hamburger */}
+        <div className="lg:hidden flex items-center gap-3">
+
+          {/* Shop icon button with tooltip */}
+          <div className="relative">
+            <Link
+              href="/shop"
+              className="flex items-center justify-center w-9 h-9 rounded-full"
+              style={{ backgroundColor: "#4C1D95" }}
+              aria-label="Shop at Bioshield"
+            >
+              <ShoppingBag size={16} strokeWidth={2.2} className="text-white" />
+            </Link>
+
+            {/* Tooltip — shows on first load, auto-hides after 3s */}
+            <AnimatePresence>
+              {showTooltip && (
+                <motion.div
+                  initial={{ opacity: 0, y: -4, scale: 0.92 }}
+                  animate={{ opacity: 1, y: 0,  scale: 1    }}
+                  exit={{    opacity: 0, y: -4, scale: 0.92 }}
+                  transition={{ duration: 0.25, ease: "easeOut" }}
+                  className="absolute top-[calc(100%+8px)] left-1/2 -translate-x-1/2 pointer-events-none z-50"
+                  style={{ whiteSpace: "nowrap" }}
+                >
+                  {/* Tooltip body */}
+                  <div
+                    className="px-3 py-[6px] rounded-lg text-[11px] font-semibold text-white shadow-lg"
+                    style={{ backgroundColor: "#4C1D95" }}
+                  >
+                    Shop at Bioshield
+                  </div>
+                  {/* Arrow pointing up */}
+                  <div
+                    className="absolute -top-[5px] left-1/2 -translate-x-1/2 w-0 h-0"
+                    style={{
+                      borderLeft:   "5px solid transparent",
+                      borderRight:  "5px solid transparent",
+                      borderBottom: "6px solid #4C1D95",
+                    }}
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </div>
+
+          {/* Hamburger */}
+          <Sheet>
+            <SheetTrigger
+              className="p-2 rounded-md text-gray-700"
+              aria-label="Open menu"
+            >
+              <Menu size={22} />
+            </SheetTrigger>
+            <SheetContent side="right" className="w-[280px] p-0 bg-white">
+              <MobileNav />
+            </SheetContent>
+          </Sheet>
+        </div>
 
       </div>
     </header>
