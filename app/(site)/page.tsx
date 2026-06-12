@@ -4,6 +4,7 @@ import StatsSection             from "@/components/site/StatsSection";
 import AboutSection             from "@/components/site/AboutSection";
 import ProductCategoriesSection from "@/components/site/ProductCategoriesSection";
 import ProductCardsSection      from "@/components/site/ProductCardsSection";
+import ContactSection           from "@/components/site/ContactSection";
 
 export default function Home() {
   return (
@@ -14,6 +15,7 @@ export default function Home() {
       <AboutSection />
       <ProductCategoriesSection />
       <ProductCardsSection />
+      <ContactSection />
     </main>
   );
 }
