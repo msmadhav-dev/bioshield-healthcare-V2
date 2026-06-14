@@ -18,3 +18,27 @@ model Product {
 
   @@map("products")
 }
+
+model Category {
+  id        String   @id @default(cuid())
+  name      String
+  image     String?
+  createdAt DateTime @default(now())
+
+  @@map("categories")
+}
+
+model Advertisement {
+  id          String   @id @default(cuid())
+  slot        Int      @default(1)    // 1=green main, 2=blue top-right, 3=navy text, 4=pink bottom-right
+  badge       String?
+  topCaption  String?
+  heading     String
+  subText     String?
+  productName String
+  image       String?
+  imageSize   Int      @default(100)  // 60-200 percentage
+  createdAt   DateTime @default(now())
+
+  @@map("advertisements")
+}

@@ -53,14 +53,14 @@ export default function Footer() {
         {/* ── LEFT — Logo + social + phone ── */}
         <div className="flex flex-col gap-6">
           {/* Logo */}
-          <Link href="/" className="flex-shrink-0">
+          <Link href="/" className="flex-shrink-0 mb-[-20px]">
           <Image
             src="/Logo-01.png"
             alt="Bioshield Healthcare"
             width={220}
             height={70}
             priority
-            className="h-[100px] w-auto object-contain"
+            className="h-[150px] w-auto object-contain"
             style={{ mixBlendMode: "multiply" }}
           />
         </Link>
@@ -163,10 +163,10 @@ export default function Footer() {
                 style={{ color: "#4C1D95" }}
               />
               <div>
-                <p className="text-[12px] font-bold text-gray-800 mb-1">
+                <p className="text-[14px] font-bold text-gray-800 mb-1">
                   {addr.title}
                 </p>
-                <p className="text-[12.5px] text-gray-500 leading-[1.7]">
+                <p className="text-[14px] text-gray-500 leading-[1.8]">
                   {addr.line1}<br />
                   {addr.line2}<br />
                   {addr.line3 && addr.line3}
