@@ -42,3 +42,34 @@ model Advertisement {
 
   @@map("advertisements")
 }
+
+model ShopProduct {
+  id                  String   @id @default(cuid())
+  name                String
+  slug                String   @unique
+  price               Float?
+  offerPrice          Float
+  badge               String?
+  badgeColor          String   @default("red")
+  mainImage           String
+  images              String[]
+  categoryId          String?
+  sectionId           String?
+  sectionOrder        Int      @default(0)
+  doctorOffer         String?
+  productDetails      String?
+  manufacturerDetails String?
+  createdAt           DateTime @default(now())
+
+  @@map("shop_products")
+}
+
+model ShopSection {
+  id        String   @id @default(cuid())
+  name      String
+  subtitle  String?
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@map("shop_sections")
+}

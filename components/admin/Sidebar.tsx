@@ -6,7 +6,8 @@ import Image from "next/image";
 import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, ClipboardList, Eye, PlusCircle,
-  ChevronDown, ChevronRight, ShoppingBag, Tag, Megaphone,
+  ChevronDown, ChevronRight, Tag, Megaphone,
+  Package, Layers,
 } from "lucide-react";
 
 const mainItems = [
@@ -40,24 +41,34 @@ const storeItems = [
       { label: "Manage Banners", href: "/admin/online-store/advertisements", icon: Eye },
     ],
   },
+  {
+    label: "Sections",
+    icon:  Layers,
+    sub: [
+      { label: "Manage Sections", href: "/admin/online-store/sections", icon: Eye },
+    ],
+  },
+  {
+    label: "Products",
+    icon:  Package,
+    sub: [
+      { label: "View Products", href: "/admin/online-store/products",     icon: Eye        },
+      { label: "Add Product",   href: "/admin/online-store/products/add", icon: PlusCircle },
+    ],
+  },
 ];
 
 function NavGroup({
-  items,
-  openKeys,
-  toggle,
-  pathname,
+  items, openKeys, toggle, pathname,
 }: {
-  items: typeof prescriptionItems;
-  openKeys: string[];
-  toggle: (label: string) => void;
-  pathname: string;
+  items: { label: string; icon: React.ElementType; sub: { label: string; href: string; icon: React.ElementType }[] }[];
+  openKeys: string[]; toggle: (l: string) => void; pathname: string;
 }) {
   return (
     <>
       {items.map((item) => {
         const isOpen    = openKeys.includes(item.label);
-        const anyActive = item.sub.some((s) => pathname === s.href);
+        const anyActive = item.sub.some((s) => pathname === s.href || pathname.startsWith(s.href + "/"));
         return (
           <div key={item.label}>
             <button
@@ -74,16 +85,13 @@ function NavGroup({
                 {item.sub.map((sub) => {
                   const active = pathname === sub.href;
                   return (
-                    <Link
-                      key={sub.href}
-                      href={sub.href}
+                    <Link key={sub.href} href={sub.href}
                       className="flex items-center gap-2 px-2 py-2 text-[12.5px] rounded-md mb-0.5 transition-colors duration-150"
                       style={{
                         color:           active ? "#4C1D95" : "#6B7280",
                         fontWeight:      active ? 600 : 400,
                         backgroundColor: active ? "#F5F3FF" : "transparent",
-                      }}
-                    >
+                      }}>
                       <sub.icon size={13} strokeWidth={2} />
                       {sub.label}
                     </Link>
@@ -100,56 +108,46 @@ function NavGroup({
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const [open, setOpen] = useState<string[]>(["Product Cards", "Categories", "Advertisements"]);
-
+  const [open, setOpen] = useState<string[]>(["Product Cards", "Categories", "Advertisements", "Sections", "Products"]);
   const toggle = (label: string) =>
     setOpen((p) => p.includes(label) ? p.filter((l) => l !== label) : [...p, label]);
 
   return (
-    <aside className="w-[230px] min-h-screen flex-shrink-0 flex flex-col" style={{ backgroundColor: "#fff", borderRight: "1px solid #E5E7EB" }}>
+    <aside className="w-[230px] min-h-screen flex-shrink-0 flex flex-col"
+      style={{ backgroundColor: "#fff", borderRight: "1px solid #E5E7EB" }}>
 
-      {/* Logo */}
-      <div className="px-5 flex items-center" style={{ borderBottom: "1px solid #E5E7EB", height: "70px", minHeight: "70px", flexShrink: 0 }}>
+      <div className="px-5 flex items-center"
+        style={{ borderBottom: "1px solid #E5E7EB", height: "70px", minHeight: "70px", flexShrink: 0 }}>
         <Link href="/admin">
-          <Image
-            src="/Logo-01.png" alt="Bioshield" width={200} height={60}
+          <Image src="/Logo-01.png" alt="Bioshield" width={200} height={60}
             className="w-auto object-contain"
             style={{ mixBlendMode: "multiply", height: "54px", maxHeight: "54px" }}
-            priority
-          />
+            priority />
         </Link>
       </div>
 
-      {/* Nav */}
       <nav className="flex-1 px-3 py-4 overflow-y-auto">
-
-        {/* Dashboard */}
         {mainItems.map((item) => {
           const active = pathname === item.href;
           return (
-            <Link
-              key={item.href} href={item.href}
+            <Link key={item.href} href={item.href}
               className="flex items-center gap-3 px-3 py-[10px] rounded-lg mb-1 text-[13px] font-medium transition-all duration-150"
-              style={{ backgroundColor: active ? "#4C1D95" : "transparent", color: active ? "#fff" : "#374151" }}
-            >
+              style={{ backgroundColor: active ? "#4C1D95" : "transparent", color: active ? "#fff" : "#374151" }}>
               <item.icon size={16} strokeWidth={2} />
               {item.label}
             </Link>
           );
         })}
 
-        {/* Prescription */}
         <div className="mt-6 mb-2 px-3">
           <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">Prescription</span>
         </div>
         <NavGroup items={prescriptionItems} openKeys={open} toggle={toggle} pathname={pathname} />
 
-        {/* Online Store */}
         <div className="mt-6 mb-2 px-3">
           <span className="text-[10px] font-bold uppercase tracking-[0.14em] text-gray-400">Online Store</span>
         </div>
         <NavGroup items={storeItems} openKeys={open} toggle={toggle} pathname={pathname} />
-
       </nav>
     </aside>
   );

@@ -21,8 +21,8 @@ export default function CategorySection() {
   if (loading || cats.length === 0) return null;
 
   return (
-    <section className="w-full py-6 px-4 md:px-6" style={{ backgroundColor: "#ffffff" }}>
-      <div className="max-w-7xl mx-auto">
+    <section className="w-full py-6" style={{ backgroundColor: "#ffffff" }}>
+      <div className="w-full px- md:px-14">
         <h2 className="text-[17px] md:text-[19px] font-bold text-gray-900 mb-4">
           Shop by Category
         </h2>
@@ -41,7 +41,7 @@ export default function CategorySection() {
               transition={{ duration: 0.35, delay: i * 0.05 }}
               onClick={() => router.push("/shop/products")}
               className="flex-shrink-0 flex flex-col items-center cursor-pointer group"
-              style={{ width: "clamp(90px, 12vw, 120px)" }}
+              style={{ width: "clamp(120px, 14vw, 160px)" }}
             >
               {/* Image box */}
               <div
@@ -72,8 +72,7 @@ export default function CategorySection() {
               </div>
 
               {/* Name */}
-              <p className="text-[12px] md:text-[13px] font-medium text-gray-900 text-center mt-2 leading-tight">
-                {cat.name}
+<p className="text-[13px] md:text-[14px] font-semibold text-gray-900 text-center mt-2.5 leading-tight">                {cat.name}
               </p>
             </motion.div>
           ))}

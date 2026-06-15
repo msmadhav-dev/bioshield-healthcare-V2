@@ -97,35 +97,40 @@ function Banner({
             {ad.badge && (
               <div className="mb-3 self-start">
                 <span
-                  className="text-[10px] font-bold px-2.5 py-1 rounded-md text-white"
-                  style={{ backgroundColor: "#EF4444" }}
-                >
-                  {ad.badge}
-                </span>
+                className="text-[12px] font-extrabold px-3 py-1.5 rounded-md text-white tracking-wide"
+                style={{ backgroundColor: "#EF4444" }}
+              >
+                {ad.badge}
+              </span>
               </div>
             )}
 
             {/* Top caption */}
             {ad.topCaption && (
               <p
-                className="text-[11px] md:text-[12.5px] mb-1.5 font-medium"
-                style={{ color: cfg.textLight ? "rgba(255,255,255,0.65)" : "#64748B" }}
+                className="mb-1.5 font-semibold"
+                style={{
+                  color:    cfg.textLight ? "rgba(255,255,255,0.65)" : "#64748B",
+                  fontSize: slot === 3 ? "11px" : "13px",
+                }}
               >
                 {ad.topCaption}
               </p>
             )}
 
             {/* Heading */}
-            <h3
-              className="font-extrabold leading-tight"
+           <h3
+              className="leading-tight"
               style={{
-                color:        cfg.textLight ? "#FFFFFF" : "#0F172A",
-                fontSize:     isMain
-                  ? "clamp(20px, 2.4vw, 30px)"
+                color:         cfg.textLight ? "#FFFFFF" : "#0F172A",
+                fontSize:      isMain
+                  ? "clamp(24px, 2.8vw, 36px)"
                   : slot === 3
-                    ? "clamp(22px, 2.2vw, 30px)"
-                    : "clamp(14px, 1.5vw, 18px)",
-                letterSpacing: "-0.02em",
+                    ? "clamp(24px, 2.4vw, 32px)"
+                    : "clamp(18px, 2vw, 24px)",
+                letterSpacing: "-0.03em",
+                fontWeight:    "800",
+                WebkitTextStroke: cfg.textLight ? "0" : "0.3px #0F172A",
               }}
             >
               {ad.heading}
@@ -143,10 +148,10 @@ function Banner({
 
             {/* CTA button */}
             {slot !== 3 && (
-              <div className="mt-auto pt-4">
+              <div className="mt-4">
                 <button
                   type="button"
-                  className="px-5 py-2.5 rounded-full text-[12.5px] font-bold transition-all hover:opacity-90 hover:scale-105"
+                  className="px-5 py-2.5 rounded-full text-[13px] font-bold transition-all hover:opacity-90 hover:scale-105"
                   style={{ backgroundColor: cfg.btnBg, color: cfg.btnText }}
                 >
                   Shop Now →
