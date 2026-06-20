@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { Upload, X, Loader2, CheckCircle, Plus, Trash2, Search } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useParams } from "next/navigation";
 
 const BADGE_COLORS = [
   { value: "red",  label: "Red",  bg: "#FEE2E2", color: "#DC2626" },
@@ -79,9 +79,15 @@ function ImageUploader({
   );
 }
 
-export default function AddShopProduct() {
+export default function EditShopProduct() {
   const router       = useRouter();
+  const params        = useParams<{ id: string }>();
+  const productId      = params.id;
   const imgRefs      = useRef<{ main: string | null; extra: string[] }>({ main: null, extra: [] });
+
+  // Page load state
+  const [loading,    setLoading]    = useState(true);
+  const [loadError,  setLoadError]  = useState("");
 
   // Basic fields
   const [name,          setName]         = useState("");
@@ -138,8 +144,62 @@ export default function AddShopProduct() {
   useEffect(() => {
     fetch("/api/shop-sections").then((r) => r.json()).then((d) => setSections(d.sections || []));
     fetch("/api/categories").then((r) => r.json()).then((d) => setCategories(d.categories || []));
-    fetch("/api/shop-products").then((r) => r.json()).then((d) => setAllProducts(d.products || []));
-  }, []);
+    fetch("/api/shop-products").then((r) => r.json()).then((d) =>
+      setAllProducts((d.products || []).filter((p: { id: string }) => p.id !== productId))
+    );
+  }, [productId]);
+
+  // Fetch the existing product and pre-fill every field
+  useEffect(() => {
+    if (!productId) return;
+    (async () => {
+      setLoading(true); setLoadError("");
+      try {
+        const res  = await fetch(`/api/shop-products/${productId}`);
+        const data = await res.json();
+        if (!res.ok || !data.product) { setLoadError("Product not found."); return; }
+
+        const p = data.product;
+        setName(p.name || "");
+        setPrice(p.price !== null && p.price !== undefined ? String(p.price) : "");
+        setOfferPrice(p.offerPrice !== null && p.offerPrice !== undefined ? String(p.offerPrice) : "");
+        setBadge(p.badge || "");
+        setBadgeColor(p.badgeColor || "red");
+        setUnit(p.unit || "");
+        setAvailableUnits(p.availableUnits || []);
+        setStock(p.stock !== null && p.stock !== undefined ? String(p.stock) : "");
+        setSectionId(p.sectionId || "");
+        setSectionOrder(p.sectionOrder !== null && p.sectionOrder !== undefined ? String(p.sectionOrder) : "0");
+        setCategoryId(p.categoryId || "");
+        setDoctorOffer(p.doctorOffer || "");
+        let parsedSections: DetailSection[] = [];
+        if (p.productDetails) {
+          try {
+            const parsed = JSON.parse(p.productDetails);
+            if (Array.isArray(parsed)) parsedSections = parsed;
+          } catch {}
+        }
+        setDetailSections(parsedSections);
+        setManufacturerDetails(p.manufacturerDetails || "");
+        setBenefits(p.benefits || "");
+        setProductDescription(p.productDescription || "");
+        setOffers(p.offers || []);
+        setFrequentlyBoughtIds(p.frequentlyBoughtIds || []);
+
+        // Images — already uploaded, just preview + reference them
+        setMainPreview(p.mainImage || null);
+        setMainUploaded(!!p.mainImage);
+        imgRefs.current.main = p.mainImage || null;
+
+        setExtraPreviews(p.images || []);
+        imgRefs.current.extra = p.images || [];
+      } catch {
+        setLoadError("Failed to load product.");
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [productId]);
 
   const uploadFile = async (file: File): Promise<string | null> => {
     const form = new FormData();
@@ -216,8 +276,8 @@ export default function AddShopProduct() {
     try {
       const validSections = detailSections.filter((s) => s.heading.trim() || s.content.trim());
 
-      const res  = await fetch("/api/shop-products", {
-        method:  "POST",
+      const res  = await fetch(`/api/shop-products/${productId}`, {
+        method:  "PATCH",
         headers: { "Content-Type": "application/json" },
        body: JSON.stringify({
           name:                 name.trim(),
@@ -246,7 +306,7 @@ export default function AddShopProduct() {
       if (data.product) {
         setSuccess(true);
         setTimeout(() => router.push("/admin/online-store/products"), 1400);
-      } else { setError(data.error || "Failed to add."); }
+      } else { setError(data.error || "Failed to save."); }
     } catch { setError("Something went wrong."); }
     finally { setSubmitting(false); }
   };
@@ -263,11 +323,30 @@ export default function AddShopProduct() {
     </div>
   );
 
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center py-32">
+        <Loader2 size={24} className="animate-spin text-gray-400" />
+      </div>
+    );
+  }
+
+  if (loadError) {
+    return (
+      <div className="max-w-3xl">
+        <div className="px-4 py-3 rounded-lg text-[13px] text-red-500"
+          style={{ backgroundColor: "#FEF2F2", border: "1px solid #FECACA" }}>
+          {loadError}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="max-w-3xl pb-16">
       <div className="mb-8">
-        <h1 className="text-xl font-bold text-gray-800">Add Shop Product</h1>
-        <p className="text-sm text-gray-500 mt-0.5">Fill in all sections below for the product listing and detail page.</p>
+        <h1 className="text-xl font-bold text-gray-800">Edit Shop Product</h1>
+        <p className="text-sm text-gray-500 mt-0.5">Update any section below, then save your changes.</p>
       </div>
 
       <div className="space-y-5">
@@ -662,10 +741,10 @@ export default function AddShopProduct() {
           }}
         >
           {success
-            ? <><CheckCircle size={16} /> Product Added!</>
+            ? <><CheckCircle size={16} /> Changes Saved!</>
             : submitting
-              ? <><Loader2 size={16} className="animate-spin" /> Adding...</>
-              : "Add Product to Shop"}
+              ? <><Loader2 size={16} className="animate-spin" /> Saving...</>
+              : "Save Changes"}
         </button>
       </div>
     </div>

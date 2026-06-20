@@ -56,6 +56,13 @@ const storeItems = [
       { label: "Add Product",   href: "/admin/online-store/products/add", icon: PlusCircle },
     ],
   },
+  {
+    label: "Settings",
+    icon:  Tag,
+    sub: [
+      { label: "Site Settings", href: "/admin/online-store/settings", icon: Eye },
+    ],
+  },
 ];
 
 function NavGroup({

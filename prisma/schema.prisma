@@ -9,12 +9,12 @@ datasource db {
 }
 
 model Product {
-  id          String   @id @default(cuid())
-  name        String
-  category    String   @default("general")
-  frontImage  String
-  backImage   String?
-  createdAt   DateTime @default(now())
+  id         String   @id @default(cuid())
+  name       String
+  category   String   @default("general")
+  frontImage String
+  backImage  String?
+  createdAt  DateTime @default(now())
 
   @@map("products")
 }
@@ -30,15 +30,15 @@ model Category {
 
 model Advertisement {
   id          String   @id @default(cuid())
-  slot        Int      @default(1)    // 1=green main, 2=blue top-right, 3=navy text, 4=pink bottom-right
   badge       String?
   topCaption  String?
   heading     String
-  subText     String?
   productName String
   image       String?
-  imageSize   Int      @default(100)  // 60-200 percentage
   createdAt   DateTime @default(now())
+  imageSize   Int      @default(100)
+  slot        Int      @default(1)
+  subText     String?
 
   @@map("advertisements")
 }
@@ -59,17 +59,36 @@ model ShopProduct {
   doctorOffer         String?
   productDetails      String?
   manufacturerDetails String?
+  benefits              String?
+  productDescription    String?
+  offers                String[]
+  frequentlyBoughtIds   String[]
+  unit                String?
+  availableUnits      String[]
+  stock               Int?
   createdAt           DateTime @default(now())
 
   @@map("shop_products")
 }
 
 model ShopSection {
-  id        String   @id @default(cuid())
-  name      String
-  subtitle  String?
-  order     Int      @default(0)
-  createdAt DateTime @default(now())
+  id                    String   @id @default(cuid())
+  name                  String
+  subtitle              String?
+  order                 Int      @default(0)
+  createdAt             DateTime @default(now())
+  availableUnits        String[]
+  productDetailSections Json?
+  stock                 Int?
+  unit                  String?
 
   @@map("shop_sections")
+}
+
+model SiteSettings {
+  id                    String   @id @default("global")
+  freeDeliveryThreshold Float    @default(400)
+  updatedAt             DateTime @updatedAt
+
+  @@map("site_settings")
 }

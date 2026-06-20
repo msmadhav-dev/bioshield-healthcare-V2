@@ -10,11 +10,18 @@ export async function GET(req: NextRequest) {
     const { searchParams } = new URL(req.url);
     const sectionId = searchParams.get("sectionId");
     const slug      = searchParams.get("slug");
+    const ids       = searchParams.get("ids");
 
     if (slug) {
       const product = await prisma.shopProduct.findUnique({ where: { slug } });
       if (!product) return NextResponse.json({ error: "Not found" }, { status: 404 });
       return NextResponse.json({ product });
+    }
+
+    if (ids) {
+      const idList = ids.split(",").filter(Boolean);
+      const products = await prisma.shopProduct.findMany({ where: { id: { in: idList } } });
+      return NextResponse.json({ products });
     }
 
     const where = sectionId ? { sectionId } : {};
@@ -32,8 +39,13 @@ export async function GET(req: NextRequest) {
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { name, price, offerPrice, badge, badgeColor, mainImage, images,
-            categoryId, sectionId, sectionOrder, doctorOffer, productDetails, manufacturerDetails } = body;
+    const {
+      name, price, offerPrice, badge, badgeColor, mainImage, images,
+      categoryId, sectionId, sectionOrder, doctorOffer,
+      productDetailSections, manufacturerDetails,
+      unit, availableUnits, stock,
+      benefits, productDescription, offers, frequentlyBoughtIds,
+    } = body;
 
     if (!name || !offerPrice || !mainImage) {
       return NextResponse.json({ error: "Name, offer price and main image required" }, { status: 400 });
@@ -46,18 +58,27 @@ export async function POST(req: NextRequest) {
     const product = await prisma.shopProduct.create({
       data: {
         name, slug,
-        price:               price ? Number(price) : null,
-        offerPrice:          Number(offerPrice),
-        badge:               badge || null,
-        badgeColor:          badgeColor || "red",
+        price:                price ? Number(price) : null,
+        offerPrice:           Number(offerPrice),
+        badge:                badge || null,
+        badgeColor:           badgeColor || "red",
         mainImage,
-        images:              images || [],
-        categoryId:          categoryId || null,
-        sectionId:           sectionId || null,
-        sectionOrder:        Number(sectionOrder) || 0,
-        doctorOffer:         doctorOffer || null,
-        productDetails:      productDetails || null,
-        manufacturerDetails: manufacturerDetails || null,
+        images:               images || [],
+        categoryId:           categoryId || null,
+        sectionId:            sectionId || null,
+        sectionOrder:         Number(sectionOrder) || 0,
+        doctorOffer:          doctorOffer || null,
+        productDetails:       Array.isArray(productDetailSections) && productDetailSections.length > 0
+                                 ? JSON.stringify(productDetailSections)
+                                 : null,
+        manufacturerDetails:  manufacturerDetails || null,
+        unit:                 unit || null,
+        availableUnits:       availableUnits || [],
+        stock:                stock !== null && stock !== undefined ? Number(stock) : null,
+        benefits:             benefits || null,
+        productDescription:   productDescription || null,
+        offers:               offers || [],
+        frequentlyBoughtIds:  frequentlyBoughtIds || [],
       },
     });
     return NextResponse.json({ product });

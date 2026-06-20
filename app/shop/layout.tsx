@@ -8,7 +8,7 @@ export const metadata: Metadata = {
 
 export default function ShopLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div style={{ backgroundColor: "#F7F7F7", minHeight: "100vh" }}>
+    <div style={{ backgroundColor: "#F7F7F7", minHeight: "100vh", overflowX: "hidden" }}>
       <ShopNavbar cartCount={0} />
       {children}
     </div>
