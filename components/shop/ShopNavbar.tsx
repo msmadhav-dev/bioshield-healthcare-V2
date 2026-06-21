@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Search, ShoppingCart, User, MapPin, ChevronDown } from "lucide-react";
+import { Search, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
 const searchTerms = [
@@ -94,10 +94,10 @@ function SearchBar({
 
 function LocationStrip() {
   return (
-    <button type="button" className="flex items-center gap-1.5 bg-transparent border-none outline-none cursor-pointer group w-fit">
-      <MapPin size={18} style={{ color: "#4C1D95" }} strokeWidth={2.2} className="flex-shrink-0" />
+    <button type="button" className="flex items-center gap-2 bg-transparent border-none outline-none cursor-pointer group w-fit">
+      <img src="/icons/location.svg" alt="" style={{ width: 18, height: 18 }} className="flex-shrink-0" />
       <span className="text-[12px] text-gray-500">Deliver to</span>
-      <span className="text-[13px] font-bold text-gray-800 group-hover:text-brand-purple transition-colors">
+      <span className="text-[13px] font-bold text-gray-800 tracking-tight group-hover:text-brand-purple transition-colors">
         Chennai
       </span>
       <ChevronDown size={13} className="text-gray-500" strokeWidth={2.5} />
@@ -126,7 +126,7 @@ export default function ShopNavbar({
     <>
       {/* ════════ DESKTOP ════════ */}
       <header
-        className="fixed top-0 left-0 right-0 z-50 hidden md:flex items-center w-full h-[68px] gap-5 px-6 xl:px-12"
+        className="fixed top-0 left-0 right-0 z-50 hidden md:flex items-center w-full h-[68px] gap-8 px-6 xl:px-12"
         style={{ backgroundColor: "#FFFFFF", borderBottom: "1px solid #E8E8EC" }}
       >
         {/* Logo */}
@@ -146,12 +146,12 @@ export default function ShopNavbar({
         <div className="w-px h-9 bg-gray-200 flex-shrink-0" />
 
         {/* Location */}
-        <button type="button" className="flex items-start gap-2 flex-shrink-0 cursor-pointer bg-transparent border-none outline-none group">
-          <MapPin size={20} className="mt-0.5 flex-shrink-0" style={{ color: "#4C1D95" }} strokeWidth={2.2} />
+        <button type="button" className="flex items-start gap-2.5 flex-shrink-0 cursor-pointer bg-transparent border-none outline-none group">
+          <img src="/icons/location.svg" alt="" style={{ width: 32, height: 32, marginTop: "2px" }} className="flex-shrink-0" />
           <div className="text-left">
-            <p className="text-[11px] text-gray-400 leading-none mb-[3px]">Deliver to</p>
+            <p className="text-[11px] text-gray-400 leading-none mb-[3px] tracking-wide">Deliver to</p>
             <div className="flex items-center gap-0.5">
-              <p className="text-[13.5px] font-bold text-gray-800 leading-none group-hover:text-brand-purple transition-colors">
+              <p className="text-[13.5px] font-bold text-gray-800 leading-none tracking-tight group-hover:text-brand-purple transition-colors">
                 Chennai
               </p>
               <ChevronDown size={12} className="text-gray-500 mt-[1px]" strokeWidth={2.5} />
@@ -168,26 +168,26 @@ export default function ShopNavbar({
         </div>
 
         {/* Right actions pushed to far right */}
-        <div className="flex items-center gap-7 flex-shrink-0 ml-auto">
+        <div className="flex items-center gap-10 flex-shrink-0 ml-auto">
 
           {/* Login / Profile */}
-          <Link href="/shop/account" className="flex items-center gap-2 group">
+          <Link href="/shop/account" className="flex items-center gap-2.5 group">
             <div className="relative flex-shrink-0">
-              <User size={24} strokeWidth={1.8} className="text-gray-700 group-hover:text-brand-purple transition-colors" />
+              <img src="/icons/user.svg" alt="" style={{ width: 26, height: 26 }} />
               <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full" style={{ backgroundColor: "#EF4444" }} />
             </div>
             <div>
-              <p className="text-[11px] text-gray-400 leading-none mb-[3px]">Hello,</p>
-              <p className="text-[13px] font-bold text-gray-800 leading-none group-hover:text-brand-purple transition-colors">
+              <p className="text-[11px] text-gray-400 leading-none mb-[3px] tracking-wide">Hello,</p>
+              <p className="text-[13px] font-bold text-gray-800 leading-none tracking-tight group-hover:text-brand-purple transition-colors">
                 {isLoggedIn ? userName : "Log in"}
               </p>
             </div>
           </Link>
 
           {/* Cart */}
-          <Link href="/shop/cart" className="flex items-center gap-2 group">
+          <Link href="/shop/cart" className="flex items-center gap-2.5 group">
             <div className="relative flex-shrink-0">
-              <ShoppingCart size={24} strokeWidth={1.8} className="text-gray-700 group-hover:text-brand-purple transition-colors" />
+              <img src="/icons/cart.svg" alt="" style={{ width: 42, height: 42 }} />
               {cartCount > 0 && (
                 <span
                   className="absolute -top-1.5 -right-1.5 min-w-[17px] h-[17px] rounded-full text-white flex items-center justify-center text-[9px] font-bold px-0.5"
@@ -197,7 +197,7 @@ export default function ShopNavbar({
                 </span>
               )}
             </div>
-            <p className="text-[13px] font-bold text-gray-800 group-hover:text-brand-purple transition-colors">
+            <p className="text-[13px] font-bold text-gray-800 tracking-tight group-hover:text-brand-purple transition-colors">
               Cart
             </p>
           </Link>
@@ -233,13 +233,13 @@ export default function ShopNavbar({
                     style={{ mixBlendMode: "multiply" }}
                   />
                 </Link>
-                <div className="flex items-center gap-5">
+                <div className="flex items-center gap-6">
                   <Link href="/shop/account" className="relative">
-                    <User size={22} strokeWidth={1.8} className="text-gray-700" />
+                    <img src="/icons/user.svg" alt="" style={{ width: 22, height: 22 }} />
                     <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full" style={{ backgroundColor: "#EF4444" }} />
                   </Link>
                   <Link href="/shop/cart" className="relative">
-                    <ShoppingCart size={22} strokeWidth={1.8} className="text-gray-700" />
+                    <img src="/icons/cart.svg" alt="" style={{ width: 34, height: 34 }} />
                     {cartCount > 0 && (
                       <span
                         className="absolute -top-1.5 -right-1.5 min-w-[16px] h-[16px] rounded-full text-white flex items-center justify-center text-[9px] font-bold"
@@ -285,13 +285,13 @@ export default function ShopNavbar({
 
           {/* Show icons next to search when scrolled */}
           {scrolled && (
-            <div className="flex items-center gap-4 flex-shrink-0">
+            <div className="flex items-center gap-5 flex-shrink-0">
               <Link href="/shop/account" className="relative">
-                <User size={21} strokeWidth={1.8} className="text-gray-700" />
+                <img src="/icons/user.svg" alt="" style={{ width: 21, height: 21 }} />
                 <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full" style={{ backgroundColor: "#EF4444" }} />
               </Link>
               <Link href="/shop/cart" className="relative">
-                <ShoppingCart size={21} strokeWidth={1.8} className="text-gray-700" />
+                <img src="/icons/cart.svg" alt="" style={{ width: 34, height: 34 }} />
                 {cartCount > 0 && (
                   <span
                     className="absolute -top-1.5 -right-1.5 min-w-[15px] h-[15px] rounded-full text-white flex items-center justify-center text-[8px] font-bold"

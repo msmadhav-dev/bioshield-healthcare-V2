@@ -100,7 +100,7 @@ function HorizontalProductRow({ products }: { products: ShopProductType[] | unde
         {list.map((product) => (
           <div
             key={product.id}
-            style={{ width: `${CARD_WIDTH}px`, minWidth: `${CARD_WIDTH}px`, flexShrink: 0 }}
+            className="flex-shrink-0 w-[148px] md:w-[260px]"
             onClickCapture={(e) => {
               if (dragState.current.moved) { e.preventDefault(); e.stopPropagation(); }
             }}
@@ -124,9 +124,23 @@ function HorizontalProductRow({ products }: { products: ShopProductType[] | unde
   );
 }
 
-type Section = { id: string; name: string; subtitle?: string | null };
+export type Section = { id: string; name: string; subtitle?: string | null };
 
-function SectionRow({ section }: { section: Section }) {
+// Fetch logic pulled out so the mobile (interleaved) layout can reuse the same list.
+export function useShopSections() {
+  const [sections, setSections] = useState<Section[]>([]);
+
+  useEffect(() => {
+    fetch("/api/shop-sections")
+      .then((r) => r.json())
+      .then((d) => setSections(Array.isArray(d?.sections) ? d.sections : []))
+      .catch(() => setSections([]));
+  }, []);
+
+  return sections;
+}
+
+export function SectionRow({ section }: { section: Section }) {
   const [products, setProducts] = useState<ShopProductType[]>([]);
 
   useEffect(() => {
@@ -165,14 +179,7 @@ function SectionRow({ section }: { section: Section }) {
 }
 
 export default function ProductSections() {
-  const [sections, setSections] = useState<Section[]>([]);
-
-  useEffect(() => {
-    fetch("/api/shop-sections")
-      .then((r) => r.json())
-      .then((d) => setSections(Array.isArray(d?.sections) ? d.sections : []))
-      .catch(() => setSections([]));
-  }, []);
+  const sections = useShopSections();
 
   if (sections.length === 0) return null;
 

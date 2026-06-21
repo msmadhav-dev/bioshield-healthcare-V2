@@ -22,8 +22,8 @@ export default function CategorySection() {
 
   return (
     <section className="w-full py-6" style={{ backgroundColor: "#ffffff" }}>
-      <div className="w-full px-3 md:px-6">
-        <h2 className="text-[17px] md:text-[19px] font-bold text-gray-900 mb-4">
+      <div className="w-full px-4 md:px-14">
+        <h2 className="text-[19px] md:text-[21px] font-extrabold text-gray-900 mb-4">
           Shop by Category
         </h2>
 

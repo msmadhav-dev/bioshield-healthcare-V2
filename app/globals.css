@@ -116,8 +116,6 @@
     border-color: var(--border);
   }
 
-  html { scroll-behavior: smooth; }
-
   body {
     background-color: var(--background);
     color: var(--foreground);
@@ -125,11 +123,6 @@
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
   }
-
-  ::-webkit-scrollbar       { width: 6px; }
-  ::-webkit-scrollbar-track { background: #f7f7f7; }
-  ::-webkit-scrollbar-thumb { background: var(--nav-mobile-accent); border-radius: 999px; }
-  ::-webkit-scrollbar-thumb:hover { background: var(--nav-active-color); }
 }
 
 /* ── Reusable navbar classes ── */
