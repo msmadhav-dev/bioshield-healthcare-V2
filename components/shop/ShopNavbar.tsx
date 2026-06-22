@@ -5,6 +5,7 @@ import Link from "next/link";
 import Image from "next/image";
 import { Search, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
+import AuthModal, { type AuthUser } from "@/components/shop/AuthModal";
 
 const searchTerms = [
   "search for products",
@@ -115,6 +116,8 @@ export default function ShopNavbar({
   userName?:   string;
 }) {
   const [scrolled, setScrolled] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
+  const [loggedInUser, setLoggedInUser] = useState<AuthUser | null>(null);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 60);
@@ -171,18 +174,18 @@ export default function ShopNavbar({
         <div className="flex items-center gap-10 flex-shrink-0 ml-auto">
 
           {/* Login / Profile */}
-          <Link href="/shop/account" className="flex items-center gap-2.5 group">
+          <button type="button" onClick={() => setAuthOpen(true)} className="flex items-center gap-2.5 group">
             <div className="relative flex-shrink-0">
               <img src="/icons/user.svg" alt="" style={{ width: 26, height: 26 }} />
-              <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full" style={{ backgroundColor: "#EF4444" }} />
+              {!loggedInUser && <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full" style={{ backgroundColor: "#EF4444" }} />}
             </div>
-            <div>
+            <div className="text-left">
               <p className="text-[11px] text-gray-400 leading-none mb-[3px] tracking-wide">Hello,</p>
               <p className="text-[13px] font-bold text-gray-800 leading-none tracking-tight group-hover:text-brand-purple transition-colors">
-                {isLoggedIn ? userName : "Log in"}
+                {loggedInUser ? loggedInUser.name : (isLoggedIn ? userName : "Log in")}
               </p>
             </div>
-          </Link>
+          </button>
 
           {/* Cart */}
           <Link href="/shop/cart" className="flex items-center gap-2.5 group">
@@ -234,10 +237,10 @@ export default function ShopNavbar({
                   />
                 </Link>
                 <div className="flex items-center gap-6">
-                  <Link href="/shop/account" className="relative">
+                  <button type="button" onClick={() => setAuthOpen(true)} className="relative">
                     <img src="/icons/user.svg" alt="" style={{ width: 22, height: 22 }} />
-                    <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full" style={{ backgroundColor: "#EF4444" }} />
-                  </Link>
+                    {!loggedInUser && <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full" style={{ backgroundColor: "#EF4444" }} />}
+                  </button>
                   <Link href="/shop/cart" className="relative">
                     <img src="/icons/cart.svg" alt="" style={{ width: 34, height: 34 }} />
                     {cartCount > 0 && (
@@ -286,10 +289,10 @@ export default function ShopNavbar({
           {/* Show icons next to search when scrolled */}
           {scrolled && (
             <div className="flex items-center gap-5 flex-shrink-0">
-              <Link href="/shop/account" className="relative">
+              <button type="button" onClick={() => setAuthOpen(true)} className="relative">
                 <img src="/icons/user.svg" alt="" style={{ width: 21, height: 21 }} />
-                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full" style={{ backgroundColor: "#EF4444" }} />
-              </Link>
+                {!loggedInUser && <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full" style={{ backgroundColor: "#EF4444" }} />}
+              </button>
               <Link href="/shop/cart" className="relative">
                 <img src="/icons/cart.svg" alt="" style={{ width: 34, height: 34 }} />
                 {cartCount > 0 && (
@@ -305,6 +308,12 @@ export default function ShopNavbar({
           )}
         </div>
       </div>
+
+      <AuthModal
+        open={authOpen}
+        onClose={() => setAuthOpen(false)}
+        onSuccess={(user) => setLoggedInUser(user)}
+      />
     </>
   );
 }

@@ -92,3 +92,16 @@ model SiteSettings {
 
   @@map("site_settings")
 }
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  phone        String   @unique
+  role         String   // "CUSTOMER" | "DOCTOR"
+  hospitalName String?
+  gender       String   // "MALE" | "FEMALE" | "OTHER"
+  age          Int
+  createdAt    DateTime @default(now())
+
+  @@map("users")
+}

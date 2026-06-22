@@ -2,12 +2,10 @@
 
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { useRouter } from "next/navigation";
 
 type Category = { id: string; name: string; image?: string | null };
 
 export default function CategorySection() {
-  const router = useRouter();
   const [cats,    setCats]    = useState<Category[]>([]);
   const [loaded,  setLoaded]  = useState(false);
 
@@ -38,8 +36,7 @@ export default function CategorySection() {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true, amount: 0.1 }}
               transition={{ duration: 0.35, delay: i * 0.05 }}
-              onClick={() => router.push("/shop/products")}
-              className="flex-shrink-0 flex flex-col items-center cursor-pointer group"
+              className="flex-shrink-0 flex flex-col items-center group"
               style={{ width: "clamp(120px, 14vw, 160px)" }}
             >
               <div

@@ -2,8 +2,7 @@
 
 import { useEffect, useState, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
-import { ChevronLeft, ChevronRight, ChevronRight as ChevronRightIcon } from "lucide-react";
-import Link from "next/link";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import ProductCard, { type ShopProductType } from "./ProductCard";
 
 const CARD_WIDTH = 260;
@@ -163,14 +162,9 @@ export function SectionRow({ section }: { section: Section }) {
       transition={{ duration: 0.5 }}
       className="w-full py-5 bg-white"
     >
-      <div className="flex items-end justify-between px-4 md:px-14 mb-4">
-        <div>
-          <h2 className="text-[19px] md:text-[21px] font-extrabold text-gray-900">{section.name}</h2>
-          {section.subtitle && <p className="text-[13px] text-gray-500 mt-0.5">{section.subtitle}</p>}
-        </div>
-        <Link href="/shop/products" className="flex items-center gap-1 text-[13px] font-semibold" style={{ color: "#14532D" }}>
-          See All <ChevronRightIcon size={14} />
-        </Link>
+      <div className="px-4 md:px-14 mb-4">
+        <h2 className="text-[19px] md:text-[21px] font-extrabold text-gray-900">{section.name}</h2>
+        {section.subtitle && <p className="text-[13px] text-gray-500 mt-0.5">{section.subtitle}</p>}
       </div>
 
       <HorizontalProductRow products={products} />
