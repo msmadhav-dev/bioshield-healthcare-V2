@@ -1,15 +1,21 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { verifyPhoneToken } from "@/lib/otpToken";
 
-// GET /api/users?phone=9876543210 — used by the "Returning User" login flow
-// to check whether an account exists for this phone number after OTP verification.
+// Both routes require the signed phone-token issued by /api/otp/verify.
+// The phone is read FROM THE TOKEN, never trusted from the request body —
+// so a caller can only ever act on a number they actually verified via OTP.
+
+// GET /api/users?token=...  — "Returning User" login: check if an account
+// exists for the OTP-verified phone.
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
-    const phone = searchParams.get("phone");
+    const token = searchParams.get("token");
 
+    const phone = token ? verifyPhoneToken(token) : null;
     if (!phone) {
-      return NextResponse.json({ error: "Phone number is required" }, { status: 400 });
+      return NextResponse.json({ error: "OTP verification required or expired." }, { status: 401 });
     }
 
     const user = await prisma.user.findUnique({ where: { phone } });
@@ -20,14 +26,19 @@ export async function GET(req: NextRequest) {
   }
 }
 
-// POST /api/users — used by the "New User" signup flow's final "Finish" step,
-// after name/phone + OTP have already been collected.
+// POST /api/users  — "New User" finish step. Requires the signed token; the
+// phone stored is the one from the token, not whatever the body claims.
 export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
-    const { name, phone, role, hospitalName, gender, age } = body;
+    const { name, role, hospitalName, gender, age, token } = body;
 
-    if (!name || !phone || !role || !gender || !age) {
+    const phone = token ? verifyPhoneToken(token) : null;
+    if (!phone) {
+      return NextResponse.json({ error: "OTP verification required or expired." }, { status: 401 });
+    }
+
+    if (!name || !role || !gender || !age) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
     if (role !== "CUSTOMER" && role !== "DOCTOR") {

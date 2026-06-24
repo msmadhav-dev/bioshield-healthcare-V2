@@ -97,8 +97,9 @@ export default function AuthModal({
   const [gender,       setGender]       = useState<Gender>("");
   const [age,          setAge]          = useState("");
 
-  const [loading, setLoading] = useState(false);
-  const [error,   setError]   = useState("");
+  const [loading, setLoading]   = useState(false);
+  const [error,   setError]     = useState("");
+  const [otpToken, setOtpToken] = useState("");
 
   useEffect(() => {
     document.body.style.overflow = open ? "hidden" : "";
@@ -109,7 +110,7 @@ export default function AuthModal({
     setTab("new"); setStep("phone");
     setName(""); setPhone(""); setOtp(Array(6).fill(""));
     setRole(""); setHospitalName(""); setGender(""); setAge("");
-    setError(""); setLoading(false);
+    setError(""); setLoading(false); setOtpToken("");
     onClose();
   };
 
@@ -119,11 +120,24 @@ export default function AuthModal({
     if (phone.length !== 10)           { setError("Please enter a valid 10-digit phone number."); return; }
 
     setLoading(true);
-    // TODO: wire to MSG91 here — request { phone } to actually send an SMS OTP.
-    await new Promise((r) => setTimeout(r, 500));
-    setLoading(false);
-    setOtp(Array(6).fill(""));
-    setStep("otp");
+    try {
+      const res  = await fetch("/api/otp/send", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ phone }),
+      });
+      const data = await res.json();
+      setLoading(false);
+      if (res.ok && data.success) {
+        setOtp(Array(6).fill(""));
+        setStep("otp");
+      } else {
+        setError(data.error || "Failed to send OTP. Please try again.");
+      }
+    } catch {
+      setLoading(false);
+      setError("Failed to send OTP. Please check your connection.");
+    }
   };
 
   const handleVerifyOtp = async () => {
@@ -131,13 +145,25 @@ export default function AuthModal({
     if (otp.some((d) => d === "")) { setError("Please enter the 6-digit OTP."); return; }
 
     setLoading(true);
-    // TODO: verify the entered OTP with MSG91 here. For now, any 6-digit code is accepted
-    // so the rest of the flow (and the data layer below) can be built and tested.
-    await new Promise((r) => setTimeout(r, 400));
+    try {
+      const verifyRes  = await fetch("/api/otp/verify", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ phone, otp: otp.join("") }),
+      });
+      const verifyData = await verifyRes.json();
 
-    if (tab === "returning") {
-      try {
-        const res  = await fetch(`/api/users?phone=${phone}`);
+      if (!verifyRes.ok || !verifyData.verified) {
+        setLoading(false);
+        setError(verifyData.error || "Incorrect OTP. Please try again.");
+        return;
+      }
+
+      const token = verifyData.token as string;
+      setOtpToken(token);
+
+      if (tab === "returning") {
+        const res  = await fetch(`/api/users?token=${encodeURIComponent(token)}`);
         const data = await res.json();
         setLoading(false);
         if (data.user) {
@@ -146,21 +172,21 @@ export default function AuthModal({
         } else {
           setError("No account found for this number. Try signing up as a new user instead.");
         }
-      } catch {
+      } else {
         setLoading(false);
-        setError("Something went wrong. Please try again.");
+        setStep("details");
       }
-    } else {
+    } catch {
       setLoading(false);
-      setStep("details");
+      setError("Something went wrong. Please try again.");
     }
   };
 
   const handleFinish = async () => {
     setError("");
-    if (!role)                              { setError("Please select whether you're a customer or doctor."); return; }
+    if (!role)                                     { setError("Please select whether you're a customer or doctor."); return; }
     if (role === "DOCTOR" && !hospitalName.trim()) { setError("Please enter your hospital name."); return; }
-    if (!gender)                            { setError("Please select your gender."); return; }
+    if (!gender)                                   { setError("Please select your gender."); return; }
     if (!age || Number(age) <= 0 || Number(age) > 120) { setError("Please enter a valid age."); return; }
 
     setLoading(true);
@@ -169,9 +195,10 @@ export default function AuthModal({
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name, phone, role,
+          name, role,
           hospitalName: role === "DOCTOR" ? hospitalName : null,
           gender, age: Number(age),
+          token: otpToken,
         }),
       });
       const data = await res.json();
@@ -253,8 +280,8 @@ export default function AuthModal({
                     </h2>
                     <p className="text-[13.5px] text-gray-500 mb-7">
                       {tab === "new"
-                        ? "Sign up with your phone number to get started."
-                        : "Enter your phone number to continue."}
+                        ? "Sign up with your WhatsApp number to get started."
+                        : "Enter your WhatsApp number to continue."}
                     </p>
 
                     {tab === "new" && (
@@ -270,7 +297,7 @@ export default function AuthModal({
                     )}
 
                     <div className="mb-2">
-                      <label className="block text-[12.5px] font-semibold text-gray-700 mb-2">Mobile Number</label>
+                      <label className="block text-[12.5px] font-semibold text-gray-700 mb-2">WhatsApp Number</label>
                       <div className="flex items-center overflow-hidden" style={inputStyle}>
                         <span className="px-4 py-3.5 text-[14px] font-semibold text-gray-500" style={{ borderRight: `1.5px solid ${BORDER_GRAY}` }}>
                           +91
@@ -278,7 +305,7 @@ export default function AuthModal({
                         <input
                           type="tel" value={phone}
                           onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
-                          placeholder="10-digit mobile number"
+                          placeholder="10-digit WhatsApp number"
                           className="flex-1 px-3.5 py-3.5 text-[14px] outline-none bg-transparent text-gray-900 placeholder-gray-400"
                         />
                       </div>
@@ -293,7 +320,7 @@ export default function AuthModal({
                     </div>
 
                     <p className="text-[11.5px] text-gray-400 text-center mt-4">
-                      We&apos;ll send a verification OTP to your mobile number.
+                      We&apos;ll send a verification OTP on WhatsApp to this number.
                     </p>
                   </div>
                 </>
@@ -304,7 +331,7 @@ export default function AuthModal({
                 <div className="px-8 py-9">
                   <h2 className="text-[26px] font-extrabold text-gray-900 mb-1.5 leading-tight">Verify OTP</h2>
                   <p className="text-[13.5px] text-gray-500">
-                    Enter the 6-digit code sent to <span className="font-semibold text-gray-700">+91 {phone}</span>
+                    Enter the 6-digit code sent on WhatsApp to <span className="font-semibold text-gray-700">+91 {phone}</span>
                   </p>
 
                   <OtpInput value={otp} onChange={setOtp} />
@@ -316,14 +343,14 @@ export default function AuthModal({
                   </PrimaryButton>
 
                   <p className="text-[11.5px] text-gray-400 text-center mt-4 mb-1">
-                    We&apos;ll send a verification OTP to your mobile number.
+                    Didn&apos;t get it on WhatsApp? Check your number and try resending.
                   </p>
 
                   <div className="flex items-center justify-between mt-4">
                     <button type="button" onClick={() => { setStep("phone"); setError(""); }} className="text-[12.5px] font-bold" style={{ color: BLACK }}>
                       ← Change number
                     </button>
-                    <button type="button" onClick={() => setOtp(Array(6).fill(""))} className="text-[12.5px] font-bold" style={{ color: BLACK }}>
+                    <button type="button" onClick={handleSendOtp} className="text-[12.5px] font-bold" style={{ color: BLACK }}>
                       Resend OTP
                     </button>
                   </div>
