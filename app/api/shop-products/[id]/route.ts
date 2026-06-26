@@ -25,19 +25,20 @@ export async function PATCH(
     const body    = await req.json();
 
     const {
-      name, price, offerPrice, badge, badgeColor, mainImage, images,
+      name, badge, badgeColor, mainImage, images,
       categoryId, sectionId, sectionOrder, doctorOffer,
       productDetailSections, manufacturerDetails,
       unit, availableUnits, stock,
       benefits, productDescription, offers, frequentlyBoughtIds,
+      customerMrp, customerOfferPercent,
+      doctorMrp, doctorPtrPrice, taxPercent,
+      productType, weightInGrams,
     } = body;
 
     const updated = await prisma.shopProduct.update({
       where: { id },
       data: {
         name,
-        price:               price !== undefined ? (price !== null ? Number(price) : null) : undefined,
-        offerPrice:          offerPrice !== undefined ? Number(offerPrice) : undefined,
         badge:               badge !== undefined ? badge : undefined,
         badgeColor:          badgeColor !== undefined ? badgeColor : undefined,
         mainImage:           mainImage !== undefined ? mainImage : undefined,
@@ -59,6 +60,24 @@ export async function PATCH(
         productDescription:  productDescription !== undefined ? productDescription : undefined,
         offers:              offers !== undefined ? offers : undefined,
         frequentlyBoughtIds: frequentlyBoughtIds !== undefined ? frequentlyBoughtIds : undefined,
+
+        customerMrp:          customerMrp !== undefined ? Number(customerMrp) : undefined,
+        customerOfferPercent: customerOfferPercent !== undefined
+                                 ? (customerOfferPercent !== null && customerOfferPercent !== "" ? Number(customerOfferPercent) : null)
+                                 : undefined,
+        doctorMrp:            doctorMrp !== undefined
+                                 ? (doctorMrp !== null && doctorMrp !== "" ? Number(doctorMrp) : null)
+                                 : undefined,
+        doctorPtrPrice:       doctorPtrPrice !== undefined
+                                 ? (doctorPtrPrice !== null && doctorPtrPrice !== "" ? Number(doctorPtrPrice) : null)
+                                 : undefined,
+        taxPercent:           taxPercent !== undefined
+                                 ? (taxPercent !== null && taxPercent !== "" ? Number(taxPercent) : null)
+                                 : undefined,
+        productType:          productType !== undefined ? productType : undefined,
+        weightInGrams:        weightInGrams !== undefined
+                                 ? (weightInGrams !== null && weightInGrams !== "" ? Number(weightInGrams) : null)
+                                 : undefined,
       },
     });
     return NextResponse.json({ product: updated });

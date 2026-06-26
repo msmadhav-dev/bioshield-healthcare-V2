@@ -6,7 +6,7 @@ import { Trash2, Loader2, RefreshCw } from "lucide-react";
 
 type Product = {
   id: string; name: string; slug: string;
-  price?: number | null; offerPrice: number;
+  customerMrp: number; customerOfferPercent?: number | null;
   badge?: string | null; badgeColor: string;
   mainImage: string; sectionId?: string | null;
   createdAt: string;
@@ -103,8 +103,9 @@ export default function ViewShopProducts() {
               <div className="p-3">
                 <p className="text-[12px] font-semibold text-gray-800 truncate">{product.name}</p>
                 <p className="text-[11px] text-gray-500 mt-0.5">
-                  ₹{product.offerPrice}
-                  {product.price && <span className="line-through ml-1 text-gray-400">₹{product.price}</span>}
+                  {product.customerOfferPercent
+                    ? <>₹{(product.customerMrp * (1 - product.customerOfferPercent / 100)).toFixed(0)} <span className="line-through ml-1 text-gray-400">₹{product.customerMrp}</span></>
+                    : <>₹{product.customerMrp}</>}
                 </p>
                 <div className="flex items-center justify-between mt-2">
                   <Link href={`/admin/online-store/products/edit/${product.id}`}

@@ -4,10 +4,12 @@ import { useEffect, useState, useRef, useCallback } from "react";
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import ProductCard, { type ShopProductType } from "./ProductCard";
+import { useUserRole } from "@/lib/useUserRole";
+import type { Role } from "@/lib/pricing";
 
 const CARD_WIDTH = 260;
 
-function HorizontalProductRow({ products }: { products: ShopProductType[] | undefined | null }) {
+function HorizontalProductRow({ products, role }: { products: ShopProductType[] | undefined | null; role: Role }) {
   const list = Array.isArray(products) ? products.filter(Boolean) : [];
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -104,7 +106,7 @@ function HorizontalProductRow({ products }: { products: ShopProductType[] | unde
               if (dragState.current.moved) { e.preventDefault(); e.stopPropagation(); }
             }}
           >
-            <ProductCard product={product} />
+            <ProductCard product={product} role={role} />
           </div>
         ))}
       </div>
@@ -141,6 +143,7 @@ export function useShopSections() {
 
 export function SectionRow({ section }: { section: Section }) {
   const [products, setProducts] = useState<ShopProductType[]>([]);
+  const role = useUserRole();
 
   useEffect(() => {
     fetch(`/api/shop-products?sectionId=${section.id}`)
@@ -167,7 +170,7 @@ export function SectionRow({ section }: { section: Section }) {
         {section.subtitle && <p className="text-[13px] text-gray-500 mt-0.5">{section.subtitle}</p>}
       </div>
 
-      <HorizontalProductRow products={products} />
+      <HorizontalProductRow products={products} role={role} />
     </motion.div>
   );
 }

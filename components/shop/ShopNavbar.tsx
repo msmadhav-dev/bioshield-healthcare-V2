@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
+import { useRouter, usePathname } from "next/navigation";
 import Image from "next/image";
 import { Search, ChevronDown } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -93,13 +94,13 @@ function SearchBar({
   );
 }
 
-function LocationStrip() {
+function LocationStrip({ city }: { city?: string | null }) {
   return (
     <button type="button" className="flex items-center gap-2 bg-transparent border-none outline-none cursor-pointer group w-fit">
       <img src="/icons/location.svg" alt="" style={{ width: 18, height: 18 }} className="flex-shrink-0" />
       <span className="text-[12px] text-gray-500">Deliver to</span>
       <span className="text-[13px] font-bold text-gray-800 tracking-tight group-hover:text-brand-purple transition-colors">
-        Chennai
+        {city || "Chennai"}
       </span>
       <ChevronDown size={13} className="text-gray-500" strokeWidth={2.5} />
     </button>
@@ -115,6 +116,9 @@ export default function ShopNavbar({
   isLoggedIn?: boolean;
   userName?:   string;
 }) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const isAccountPage = pathname?.startsWith("/shop/account") ?? false;
   const [scrolled, setScrolled] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const [loggedInUser, setLoggedInUser] = useState<AuthUser | null>(null);
@@ -124,6 +128,20 @@ export default function ShopNavbar({
     window.addEventListener("scroll", onScroll, { passive: true });
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
+
+  // Restore login state from the session cookie on every page load/refresh —
+  // this is what fixes "refreshing logs me out".
+  useEffect(() => {
+    fetch("/api/auth/me")
+      .then((r) => r.json())
+      .then((d) => { if (d.user) setLoggedInUser(d.user); })
+      .catch(() => {});
+  }, []);
+
+  const handleProfileClick = () => {
+    if (loggedInUser) router.push("/shop/account");
+    else setAuthOpen(true);
+  };
 
   return (
     <>
@@ -155,7 +173,7 @@ export default function ShopNavbar({
             <p className="text-[11px] text-gray-400 leading-none mb-[3px] tracking-wide">Deliver to</p>
             <div className="flex items-center gap-0.5">
               <p className="text-[13.5px] font-bold text-gray-800 leading-none tracking-tight group-hover:text-brand-purple transition-colors">
-                Chennai
+                {loggedInUser?.city || "Chennai"}
               </p>
               <ChevronDown size={12} className="text-gray-500 mt-[1px]" strokeWidth={2.5} />
             </div>
@@ -174,7 +192,7 @@ export default function ShopNavbar({
         <div className="flex items-center gap-10 flex-shrink-0 ml-auto">
 
           {/* Login / Profile */}
-          <button type="button" onClick={() => setAuthOpen(true)} className="flex items-center gap-2.5 group">
+          <button type="button" onClick={handleProfileClick} className="flex items-center gap-2.5 group">
             <div className="relative flex-shrink-0">
               <img src="/icons/user.svg" alt="" style={{ width: 26, height: 26 }} />
               {!loggedInUser && <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full" style={{ backgroundColor: "#EF4444" }} />}
@@ -186,6 +204,16 @@ export default function ShopNavbar({
               </p>
             </div>
           </button>
+
+          {/* Wallet — only shown once logged in */}
+          {loggedInUser && (
+            <Link href="/shop/account/wallet" className="flex items-center gap-2 group">
+              <img src="/icons/wallet.svg" alt="" style={{ width: 22, height: 22 }} />
+              <span className="text-[13px] font-bold text-gray-800 tracking-tight group-hover:text-brand-purple transition-colors">
+                ₹{(loggedInUser.walletBalance ?? 0).toFixed(0)}
+              </span>
+            </Link>
+          )}
 
           {/* Cart */}
           <Link href="/shop/cart" className="flex items-center gap-2.5 group">
@@ -213,9 +241,9 @@ export default function ShopNavbar({
         className="fixed top-0 left-0 right-0 z-50 md:hidden"
         style={{ backgroundColor: "#FFFFFF", borderBottom: "1px solid #E8E8EC" }}
       >
-        {/* Row 1: Logo + Profile + Cart — hides on scroll */}
+        {/* Row 1: Logo + Profile + Cart — hides on scroll, except on account pages where it stays put */}
         <AnimatePresence initial={false}>
-          {!scrolled && (
+          {(!scrolled || isAccountPage) && (
             <motion.div
               key="logo-row"
               initial={{ height: 0,      opacity: 0 }}
@@ -237,10 +265,16 @@ export default function ShopNavbar({
                   />
                 </Link>
                 <div className="flex items-center gap-6">
-                  <button type="button" onClick={() => setAuthOpen(true)} className="relative">
+                  <button type="button" onClick={handleProfileClick} className="relative">
                     <img src="/icons/user.svg" alt="" style={{ width: 22, height: 22 }} />
                     {!loggedInUser && <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full" style={{ backgroundColor: "#EF4444" }} />}
                   </button>
+                  {loggedInUser && (
+                    <Link href="/shop/account/wallet" className="flex items-center gap-1">
+                      <img src="/icons/wallet.svg" alt="" style={{ width: 20, height: 20 }} />
+                      <span className="text-[12px] font-bold text-gray-800">₹{(loggedInUser.walletBalance ?? 0).toFixed(0)}</span>
+                    </Link>
+                  )}
                   <Link href="/shop/cart" className="relative">
                     <img src="/icons/cart.svg" alt="" style={{ width: 34, height: 34 }} />
                     {cartCount > 0 && (
@@ -271,42 +305,50 @@ export default function ShopNavbar({
               style={{ backgroundColor: "#F7F7F9", borderTop: "1px solid #F0F0F5" }}
             >
               <div className="flex items-center px-4 h-[36px]">
-                <LocationStrip />
+                <LocationStrip city={loggedInUser?.city} />
               </div>
             </motion.div>
           )}
         </AnimatePresence>
 
-        {/* Row 3: Search bar — always visible, no button on mobile */}
-        <div
-          className="flex items-center gap-3 px-4 py-2.5"
-          style={{ backgroundColor: scrolled ? "#FFFFFF" : "#F7F7F7" }}
-        >
-          <div className="flex-1">
-            <SearchBar compact={scrolled} showButton={false} />
-          </div>
-
-          {/* Show icons next to search when scrolled */}
-          {scrolled && (
-            <div className="flex items-center gap-5 flex-shrink-0">
-              <button type="button" onClick={() => setAuthOpen(true)} className="relative">
-                <img src="/icons/user.svg" alt="" style={{ width: 21, height: 21 }} />
-                {!loggedInUser && <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full" style={{ backgroundColor: "#EF4444" }} />}
-              </button>
-              <Link href="/shop/cart" className="relative">
-                <img src="/icons/cart.svg" alt="" style={{ width: 34, height: 34 }} />
-                {cartCount > 0 && (
-                  <span
-                    className="absolute -top-1.5 -right-1.5 min-w-[15px] h-[15px] rounded-full text-white flex items-center justify-center text-[8px] font-bold"
-                    style={{ backgroundColor: "#EF4444" }}
-                  >
-                    {cartCount}
-                  </span>
-                )}
-              </Link>
+        {/* Row 3: Search bar — only on the main shop and product pages, hidden on account pages */}
+        {!isAccountPage && (
+          <div
+            className="flex items-center gap-3 px-4 py-2.5"
+            style={{ backgroundColor: scrolled ? "#FFFFFF" : "#F7F7F7" }}
+          >
+            <div className="flex-1">
+              <SearchBar compact={scrolled} showButton={false} />
             </div>
-          )}
-        </div>
+
+            {/* Show icons next to search when scrolled */}
+            {scrolled && (
+              <div className="flex items-center gap-5 flex-shrink-0">
+                <button type="button" onClick={handleProfileClick} className="relative">
+                  <img src="/icons/user.svg" alt="" style={{ width: 21, height: 21 }} />
+                  {!loggedInUser && <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full" style={{ backgroundColor: "#EF4444" }} />}
+                </button>
+                {loggedInUser && (
+                  <Link href="/shop/account/wallet" className="flex items-center gap-1">
+                    <img src="/icons/wallet.svg" alt="" style={{ width: 19, height: 19 }} />
+                    <span className="text-[11.5px] font-bold text-gray-800">₹{(loggedInUser.walletBalance ?? 0).toFixed(0)}</span>
+                  </Link>
+                )}
+                <Link href="/shop/cart" className="relative">
+                  <img src="/icons/cart.svg" alt="" style={{ width: 34, height: 34 }} />
+                  {cartCount > 0 && (
+                    <span
+                      className="absolute -top-1.5 -right-1.5 min-w-[15px] h-[15px] rounded-full text-white flex items-center justify-center text-[8px] font-bold"
+                      style={{ backgroundColor: "#EF4444" }}
+                    >
+                      {cartCount}
+                    </span>
+                  )}
+                </Link>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       <AuthModal

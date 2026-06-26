@@ -4,17 +4,21 @@ import { useEffect, useState } from "react";
 import { Loader2, CheckCircle, Truck } from "lucide-react";
 
 export default function SiteSettingsPage() {
-  const [threshold,  setThreshold]  = useState("400");
-  const [loading,    setLoading]    = useState(true);
-  const [saving,     setSaving]     = useState(false);
-  const [success,    setSuccess]    = useState(false);
-  const [error,      setError]      = useState("");
+  const [perKg,            setPerKg]            = useState("30");
+  const [customerThreshold, setCustomerThreshold] = useState("500");
+  const [doctorThreshold,   setDoctorThreshold]   = useState("1000");
+  const [loading, setLoading] = useState(true);
+  const [saving,  setSaving]  = useState(false);
+  const [success, setSuccess] = useState(false);
+  const [error,   setError]   = useState("");
 
   useEffect(() => {
     fetch("/api/site-settings")
       .then((r) => r.json())
       .then((d) => {
-        setThreshold(String(d.settings?.freeDeliveryThreshold ?? 400));
+        setPerKg(String(d.settings?.deliveryChargePerKg ?? 30));
+        setCustomerThreshold(String(d.settings?.customerFreeDeliveryThreshold ?? 500));
+        setDoctorThreshold(String(d.settings?.doctorFreeDeliveryThreshold ?? 1000));
         setLoading(false);
       })
       .catch(() => setLoading(false));
@@ -26,7 +30,11 @@ export default function SiteSettingsPage() {
       const res  = await fetch("/api/site-settings", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ freeDeliveryThreshold: Number(threshold) }),
+        body: JSON.stringify({
+          deliveryChargePerKg:           Number(perKg),
+          customerFreeDeliveryThreshold: Number(customerThreshold),
+          doctorFreeDeliveryThreshold:   Number(doctorThreshold),
+        }),
       });
       const data = await res.json();
       if (data.settings) {
@@ -36,6 +44,10 @@ export default function SiteSettingsPage() {
     } catch { setError("Something went wrong."); }
     finally { setSaving(false); }
   };
+
+  const inputStyle = { border: "1px solid #D1D5DB", backgroundColor: "#FAFAFA" };
+  const onFocus = (e: React.FocusEvent<HTMLInputElement>) => (e.target.style.borderColor = "#14532D");
+  const onBlur  = (e: React.FocusEvent<HTMLInputElement>) => (e.target.style.borderColor = "#D1D5DB");
 
   return (
     <div className="max-w-xl">
@@ -47,27 +59,51 @@ export default function SiteSettingsPage() {
       <div className="bg-white p-6 rounded-xl" style={{ border: "1px solid #E5E7EB" }}>
         <div className="flex items-center gap-2 mb-4">
           <Truck size={18} style={{ color: "#14532D" }} />
-          <h3 className="text-[14px] font-bold text-gray-800">Free Delivery Threshold</h3>
+          <h3 className="text-[14px] font-bold text-gray-800">Delivery Charges</h3>
         </div>
-        <p className="text-[12px] text-gray-400 mb-4">
-          Shown on every product page as &quot;Free delivery on orders above ₹X&quot;
-        </p>
 
         {loading ? (
           <Loader2 size={20} className="animate-spin text-gray-400" />
         ) : (
           <>
-            <div className="flex items-center gap-3 mb-5">
-              <span className="text-[14px] text-gray-500">₹</span>
-              <input
-                type="number"
-                value={threshold}
-                onChange={(e) => setThreshold(e.target.value)}
-                className="px-3 py-2.5 text-[14px] outline-none w-40"
-                style={{ border: "1px solid #D1D5DB", backgroundColor: "#FAFAFA" }}
-                onFocus={(e) => (e.target.style.borderColor = "#14532D")}
-                onBlur={(e)  => (e.target.style.borderColor = "#D1D5DB")}
-              />
+            <div className="mb-5">
+              <label className="block text-[12px] font-semibold text-gray-700 mb-1.5">Delivery charge per 1kg</label>
+              <p className="text-[11.5px] text-gray-400 mb-2">
+                Cart weight rounds up to the next kg — e.g. 1.4kg of products is charged as 2kg.
+              </p>
+              <div className="flex items-center gap-2">
+                <span className="text-[14px] text-gray-500">₹</span>
+                <input
+                  type="number" value={perKg} onChange={(e) => setPerKg(e.target.value)}
+                  className="px-3 py-2.5 text-[14px] outline-none w-32"
+                  style={inputStyle} onFocus={onFocus} onBlur={onBlur}
+                />
+                <span className="text-[13px] text-gray-400">per kg</span>
+              </div>
+            </div>
+
+            <div className="mb-5">
+              <label className="block text-[12px] font-semibold text-gray-700 mb-1.5">Free delivery above (Customers)</label>
+              <div className="flex items-center gap-2">
+                <span className="text-[14px] text-gray-500">₹</span>
+                <input
+                  type="number" value={customerThreshold} onChange={(e) => setCustomerThreshold(e.target.value)}
+                  className="px-3 py-2.5 text-[14px] outline-none w-32"
+                  style={inputStyle} onFocus={onFocus} onBlur={onBlur}
+                />
+              </div>
+            </div>
+
+            <div className="mb-5">
+              <label className="block text-[12px] font-semibold text-gray-700 mb-1.5">Free delivery above (Doctors)</label>
+              <div className="flex items-center gap-2">
+                <span className="text-[14px] text-gray-500">₹</span>
+                <input
+                  type="number" value={doctorThreshold} onChange={(e) => setDoctorThreshold(e.target.value)}
+                  className="px-3 py-2.5 text-[14px] outline-none w-32"
+                  style={inputStyle} onFocus={onFocus} onBlur={onBlur}
+                />
+              </div>
             </div>
 
             {error && <p className="text-[12px] text-red-500 mb-3">{error}</p>}

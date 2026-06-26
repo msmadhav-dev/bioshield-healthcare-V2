@@ -40,15 +40,20 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const {
-      name, price, offerPrice, badge, badgeColor, mainImage, images,
+      name, badge, badgeColor, mainImage, images,
       categoryId, sectionId, sectionOrder, doctorOffer,
       productDetailSections, manufacturerDetails,
       unit, availableUnits, stock,
       benefits, productDescription, offers, frequentlyBoughtIds,
+      // Pricing — split customer / doctor
+      customerMrp, customerOfferPercent,
+      doctorMrp, doctorPtrPrice, taxPercent,
+      // Delivery weight calc
+      productType, weightInGrams,
     } = body;
 
-    if (!name || !offerPrice || !mainImage) {
-      return NextResponse.json({ error: "Name, offer price and main image required" }, { status: 400 });
+    if (!name || !customerMrp || !mainImage) {
+      return NextResponse.json({ error: "Name, customer MRP, and main image required" }, { status: 400 });
     }
 
     let slug = slugify(name);
@@ -58,8 +63,6 @@ export async function POST(req: NextRequest) {
     const product = await prisma.shopProduct.create({
       data: {
         name, slug,
-        price:                price ? Number(price) : null,
-        offerPrice:           Number(offerPrice),
         badge:                badge || null,
         badgeColor:           badgeColor || "red",
         mainImage,
@@ -79,6 +82,16 @@ export async function POST(req: NextRequest) {
         productDescription:   productDescription || null,
         offers:               offers || [],
         frequentlyBoughtIds:  frequentlyBoughtIds || [],
+
+        customerMrp:          Number(customerMrp),
+        customerOfferPercent: customerOfferPercent !== undefined && customerOfferPercent !== null && customerOfferPercent !== ""
+                                 ? Number(customerOfferPercent) : null,
+        doctorMrp:            doctorMrp !== undefined && doctorMrp !== null && doctorMrp !== "" ? Number(doctorMrp) : null,
+        doctorPtrPrice:       doctorPtrPrice !== undefined && doctorPtrPrice !== null && doctorPtrPrice !== "" ? Number(doctorPtrPrice) : null,
+        taxPercent:           taxPercent !== undefined && taxPercent !== null && taxPercent !== "" ? Number(taxPercent) : null,
+
+        productType:          productType || "OTHER",
+        weightInGrams:        weightInGrams !== undefined && weightInGrams !== null && weightInGrams !== "" ? Number(weightInGrams) : null,
       },
     });
     return NextResponse.json({ product });

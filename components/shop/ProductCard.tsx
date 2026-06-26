@@ -1,23 +1,55 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Heart, Star, ShoppingCart } from "lucide-react";
+import { Heart, Star, ShoppingCart, Check, Loader2 } from "lucide-react";
+import { getCustomerPricing, getDoctorPricing, type Role } from "@/lib/pricing";
 
 export type ShopProductType = {
   id: string; name: string; slug: string;
-  price?: number | null; offerPrice: number;
+  customerMrp: number; customerOfferPercent?: number | null;
+  doctorMrp?: number | null; doctorPtrPrice?: number | null;
   badge?: string | null; badgeColor: string;
   mainImage: string; unit?: string | null;
+  productType?: string;
 };
 
-export default function ProductCard({ product }: { product: ShopProductType | null | undefined }) {
+export default function ProductCard({
+  product, role = "CUSTOMER",
+}: {
+  product: ShopProductType | null | undefined;
+  role?: Role;
+}) {
   const router = useRouter();
+  const [adding, setAdding] = useState(false);
+  const [added,  setAdded]  = useState(false);
 
   if (!product) return null;
 
-  const discount = product.price && product.offerPrice < product.price
-    ? Math.round(((product.price - product.offerPrice) / product.price) * 100)
-    : null;
+  const isDoctor = role === "DOCTOR";
+  const { mrp: customerMrp, offerPrice, hasOffer } = getCustomerPricing(product);
+  const { mrp: doctorMrp, ptr } = getDoctorPricing(product);
+
+  const mrp        = isDoctor ? doctorMrp : customerMrp;
+  const price       = isDoctor ? ptr : offerPrice;
+  const showStrike = isDoctor || hasOffer || true; // MRP always shown struck-through somewhere
+  const discount    = !isDoctor && hasOffer ? Math.round(((customerMrp - offerPrice) / customerMrp) * 100) : null;
+
+  const handleAddToCart = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (adding || added) return;
+    setAdding(true);
+    try {
+      await fetch("/api/cart", {
+        method:  "POST",
+        headers: { "Content-Type": "application/json" },
+        body:    JSON.stringify({ shopProductId: product.id, quantity: 1 }),
+      });
+      setAdded(true);
+      setTimeout(() => setAdded(false), 2000);
+    } catch {}
+    finally { setAdding(false); }
+  };
 
   return (
     <div
@@ -100,15 +132,16 @@ export default function ProductCard({ product }: { product: ShopProductType | nu
           )}
         </p>
 
-        {/* Price */}
+        {/* Price — role-aware. Customers see MRP/offer (or MRP twice if no
+            offer, for the "attraction" effect); doctors see MRP/PTR. */}
         <div>
           <div className="flex items-baseline gap-1.5 md:gap-2 flex-wrap">
             <span className="text-[16px] md:text-[21px] font-extrabold text-gray-900">
-              ₹{product.offerPrice.toFixed(0)}
+              ₹{price.toFixed(0)}
             </span>
-            {product.price && product.price > product.offerPrice && (
+            {showStrike && (
               <span className="text-[11px] md:text-[13.5px] line-through text-gray-400">
-                ₹{product.price.toFixed(0)}
+                ₹{mrp.toFixed(0)}
               </span>
             )}
           </div>
@@ -117,6 +150,7 @@ export default function ProductCard({ product }: { product: ShopProductType | nu
               {discount}% off
             </span>
           )}
+          {isDoctor && <span className="text-[10.5px] font-semibold text-gray-400">PTR price</span>}
         </div>
 
         {/* Buttons — fully round, dark green */}
@@ -133,13 +167,18 @@ export default function ProductCard({ product }: { product: ShopProductType | nu
           </button>
           <button
             type="button"
-            onClick={(e) => e.stopPropagation()}
+            onClick={handleAddToCart}
             className="flex-shrink-0 flex items-center justify-center rounded-full transition-colors w-9 md:w-[44px]"
-            style={{ border: "1.5px solid #14532D", backgroundColor: "#FFFFFF" }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#F0FDF4")}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#FFFFFF")}
+            style={{ border: "1.5px solid #14532D", backgroundColor: added ? "#F0FDF4" : "#FFFFFF" }}
+            onMouseEnter={(e) => { if (!added) e.currentTarget.style.backgroundColor = "#F0FDF4"; }}
+            onMouseLeave={(e) => { if (!added) e.currentTarget.style.backgroundColor = "#FFFFFF"; }}
           >
-            <ShoppingCart className="w-[14px] h-[14px] md:w-[17px] md:h-[17px]" strokeWidth={2} style={{ color: "#14532D" }} />
+            {adding
+              ? <Loader2 className="w-[14px] h-[14px] md:w-[17px] md:h-[17px] animate-spin" style={{ color: "#14532D" }} />
+              : added
+                ? <Check className="w-[14px] h-[14px] md:w-[17px] md:h-[17px]" style={{ color: "#14532D" }} />
+                : <ShoppingCart className="w-[14px] h-[14px] md:w-[17px] md:h-[17px]" strokeWidth={2} style={{ color: "#14532D" }} />
+            }
           </button>
         </div>
       </div>

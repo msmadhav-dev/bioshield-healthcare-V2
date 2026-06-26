@@ -7,7 +7,7 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard, ClipboardList, Eye, PlusCircle,
   ChevronDown, ChevronRight, Tag, Megaphone,
-  Package, Layers,
+  Package, Layers, Stethoscope,
 } from "lucide-react";
 
 const mainItems = [
@@ -54,6 +54,13 @@ const storeItems = [
     sub: [
       { label: "View Products", href: "/admin/online-store/products",     icon: Eye        },
       { label: "Add Product",   href: "/admin/online-store/products/add", icon: PlusCircle },
+    ],
+  },
+  {
+    label: "Doctor Verification",
+    icon:  Stethoscope,
+    sub: [
+      { label: "Review Submissions", href: "/admin/online-store/doctor-verification", icon: Eye },
     ],
   },
   {

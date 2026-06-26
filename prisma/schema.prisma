@@ -47,8 +47,6 @@ model ShopProduct {
   id                  String   @id @default(cuid())
   name                String
   slug                String   @unique
-  price               Float?
-  offerPrice          Float
   badge               String?
   badgeColor          String   @default("red")
   mainImage           String
@@ -68,6 +66,19 @@ model ShopProduct {
   stock               Int?
   createdAt           DateTime @default(now())
 
+  // ── Pricing — split by customer vs doctor ──
+  customerMrp          Float
+  customerOfferPercent Float?  // e.g. 10 = 10% off; if unset, MRP shown struck-through twice (attraction effect)
+  doctorMrp             Float?
+  doctorPtrPrice         Float?
+  taxPercent             Float? // applied only to doctor PTR price, only in order summary — never shown on product cards/pages
+
+  // ── Delivery weight calc ──
+  productType   String @default("OTHER") // "TABLET" | "GEL" | "SYRUP" | "OTHER" — TABLET is excluded from weight calc
+  weightInGrams Float? // grams (liquids entered as 1ml ≈ 1g equivalent)
+
+  cartItems CartItem[]
+
   @@map("shop_products")
 }
 
@@ -86,22 +97,79 @@ model ShopSection {
 }
 
 model SiteSettings {
-  id                    String   @id @default("global")
-  freeDeliveryThreshold Float    @default(400)
-  updatedAt             DateTime @updatedAt
+  id                            String   @id @default("global")
+  deliveryChargePerKg           Float    @default(30)
+  customerFreeDeliveryThreshold Float    @default(500)
+  doctorFreeDeliveryThreshold   Float    @default(1000)
+  updatedAt                     DateTime @updatedAt
 
   @@map("site_settings")
 }
 
+model DoctorVerification {
+  id               String    @id @default(cuid())
+  userId           String    @unique
+  user             User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  doctorName       String
+  hospitalName     String
+  registerNo       String?
+  registerProofUrl String?
+  dlNo             String?
+  dlProofUrl       String?
+  address          String
+  status           String    @default("PENDING") // "PENDING" | "APPROVED" | "REJECTED"
+  rejectionReason  String?
+  createdAt        DateTime  @default(now())
+  reviewedAt       DateTime?
+
+  @@map("doctor_verifications")
+}
+
 model User {
-  id           String   @id @default(cuid())
-  name         String
-  phone        String   @unique
-  role         String   // "CUSTOMER" | "DOCTOR"
-  hospitalName String?
-  gender       String   // "MALE" | "FEMALE" | "OTHER"
-  age          Int
-  createdAt    DateTime @default(now())
+  id            String   @id @default(cuid())
+  name          String
+  email         String?
+  phone         String   @unique
+  role          String   // "CUSTOMER" | "DOCTOR"
+  hospitalName  String?
+  gender        String   // "MALE" | "FEMALE" | "OTHER"
+  age           Int
+  walletBalance Float    @default(0)
+  createdAt     DateTime @default(now())
+
+  addresses Address[]
+  doctorVerification DoctorVerification?
+  cartItems CartItem[]
 
   @@map("users")
+}
+
+model CartItem {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shopProductId String
+  shopProduct   ShopProduct @relation(fields: [shopProductId], references: [id], onDelete: Cascade)
+  selectedUnit  String?  // which pack size variant, if the product has availableUnits
+  quantity      Int      @default(1)
+  createdAt     DateTime @default(now())
+
+  @@unique([userId, shopProductId, selectedUnit])
+  @@map("cart_items")
+}
+
+model Address {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  label     String
+  doorNo    String
+  street    String
+  cityTown  String
+  pincode   String
+  district  String
+  state     String
+  createdAt DateTime @default(now())
+
+  @@map("addresses")
 }

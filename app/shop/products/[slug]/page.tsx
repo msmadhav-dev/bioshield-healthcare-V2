@@ -8,6 +8,8 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import ProductCard, { type ShopProductType } from "@/components/shop/ProductCard";
+import { useUserRole } from "@/lib/useUserRole";
+import { getCustomerPricing, getDoctorPricing } from "@/lib/pricing";
 
 type DetailSection = { heading: string; content: string };
 type TabKey = "details" | "benefits" | "manufacturer" | "description";
@@ -44,8 +46,10 @@ export default function ProductDetailPage() {
   const [addedToCart,       setAddedToCart]       = useState(false);
   const [copied,            setCopied]            = useState(false);
   const [referralCopied,    setReferralCopied]    = useState(false);
-  const [freeDeliveryThreshold, setFreeDeliveryThreshold] = useState(400);
+  const [customerFreeDeliveryThreshold, setCustomerFreeDeliveryThreshold] = useState(500);
+  const [doctorFreeDeliveryThreshold,   setDoctorFreeDeliveryThreshold]   = useState(1000);
   const [activeTab,         setActiveTab]         = useState<TabKey>("details");
+  const role = useUserRole();
 
   // Fetch product
   useEffect(() => {
@@ -66,7 +70,10 @@ export default function ProductDetailPage() {
   useEffect(() => {
     fetch("/api/site-settings")
       .then((r) => r.json())
-      .then((d) => setFreeDeliveryThreshold(d.settings?.freeDeliveryThreshold ?? 400))
+      .then((d) => {
+        setCustomerFreeDeliveryThreshold(d.settings?.customerFreeDeliveryThreshold ?? 500);
+        setDoctorFreeDeliveryThreshold(d.settings?.doctorFreeDeliveryThreshold ?? 1000);
+      })
       .catch(() => {});
   }, []);
 
@@ -180,8 +187,13 @@ export default function ProductDetailPage() {
     );
   }
 
-  const discount = product.price && product.offerPrice < product.price
-    ? Math.round(((product.price - product.offerPrice) / product.price) * 100)
+  const isDoctor = role === "DOCTOR";
+  const customerPricing = getCustomerPricing(product);
+  const doctorPricing   = getDoctorPricing(product);
+  const displayMrp   = isDoctor ? doctorPricing.mrp : customerPricing.mrp;
+  const displayPrice = isDoctor ? doctorPricing.ptr : customerPricing.offerPrice;
+  const discount = !isDoctor && customerPricing.hasOffer
+    ? Math.round(((customerPricing.mrp - customerPricing.offerPrice) / customerPricing.mrp) * 100)
     : null;
 
   let detailSections: DetailSection[] = [];
@@ -286,35 +298,47 @@ export default function ProductDetailPage() {
               <span className="text-[12px] text-gray-400 ml-1.5">No reviews yet</span>
             </div>
 
-            {/* Price */}
+            {/* Price — role-aware: customers see MRP/offer, doctors see MRP/PTR */}
             <div className="mb-5 pb-5" style={{ borderBottom: "1px solid #F0F0F0" }}>
-              {product.price && product.price > product.offerPrice && (
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-[13px] text-gray-400">M.R.P:</span>
-                  <span className="text-[13px] text-gray-400 line-through">₹{product.price.toFixed(2)}</span>
-                  {discount && (
-                    <span className="text-[11px] font-extrabold text-white px-2 py-0.5 rounded" style={{ backgroundColor: "#DC2626" }}>
-                      {discount}% OFF
-                    </span>
-                  )}
-                </div>
-              )}
-              <div className="flex items-baseline gap-2 flex-wrap">
-                <span className="text-[32px] font-extrabold text-gray-900">₹{product.offerPrice.toFixed(2)}</span>
-                {product.price && product.price > product.offerPrice && (
-                  <span className="text-[13px] font-semibold" style={{ color: "#14532D" }}>
-                    You save ₹{(product.price - product.offerPrice).toFixed(2)}
+              <div className="flex items-center gap-2 mb-1">
+                <span className="text-[13px] text-gray-400">M.R.P:</span>
+                <span className="text-[13px] text-gray-400 line-through">₹{displayMrp.toFixed(2)}</span>
+                {discount && (
+                  <span className="text-[11px] font-extrabold text-white px-2 py-0.5 rounded" style={{ backgroundColor: "#DC2626" }}>
+                    {discount}% OFF
                   </span>
                 )}
               </div>
-              <p className="text-[11px] text-gray-400 mt-0.5">Inclusive of all taxes</p>
+              <div className="flex items-baseline gap-2 flex-wrap">
+                <span className="text-[32px] font-extrabold text-gray-900">₹{displayPrice.toFixed(2)}</span>
+                {discount && (
+                  <span className="text-[13px] font-semibold" style={{ color: "#14532D" }}>
+                    You save ₹{(displayMrp - displayPrice).toFixed(2)}
+                  </span>
+                )}
+                {isDoctor && <span className="text-[12px] text-gray-400 font-semibold">PTR price</span>}
+              </div>
+              <p className="text-[11px] text-gray-400 mt-0.5">
+                {isDoctor ? "Tax calculated at checkout" : "Inclusive of all taxes"}
+              </p>
             </div>
 
             {/* Buttons — smaller */}
             <div className="flex gap-3 mb-2">
               <button
                 type="button"
-                onClick={() => { setAddedToCart(true); setTimeout(() => setAddedToCart(false), 2000); }}
+                onClick={async () => {
+                  if (addedToCart) return;
+                  try {
+                    await fetch("/api/cart", {
+                      method:  "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body:    JSON.stringify({ shopProductId: product.id, selectedUnit, quantity: 1 }),
+                    });
+                  } catch {}
+                  setAddedToCart(true);
+                  setTimeout(() => setAddedToCart(false), 2000);
+                }}
                 className="flex-1 flex items-center justify-center gap-2 py-2.5 rounded-xl text-[13px] font-bold transition-all"
                 style={{
                   border:          "2px solid #14532D",
@@ -327,6 +351,16 @@ export default function ProductDetailPage() {
               </button>
               <button
                 type="button"
+                onClick={async () => {
+                  try {
+                    await fetch("/api/cart", {
+                      method:  "POST",
+                      headers: { "Content-Type": "application/json" },
+                      body:    JSON.stringify({ shopProductId: product.id, selectedUnit, quantity: 1 }),
+                    });
+                  } catch {}
+                  router.push("/shop/cart");
+                }}
                 className="flex-1 py-2.5 rounded-xl text-[13px] font-bold text-white transition-colors"
                 style={{ backgroundColor: "#14532D" }}
                 onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#0F3D21")}
@@ -446,7 +480,7 @@ export default function ProductDetailPage() {
                 <img src="/icons/delivery-truck.svg" alt="" style={{ width: 28, height: 28, objectFit: "contain", marginTop: "1px" }} className="flex-shrink-0" />
                 <div>
                   <p className="text-[13px] font-bold text-gray-900">
-                    Free delivery on orders above ₹{freeDeliveryThreshold}
+                    Free delivery on orders above ₹{isDoctor ? doctorFreeDeliveryThreshold : customerFreeDeliveryThreshold}
                   </p>
                 </div>
               </div>
@@ -565,7 +599,7 @@ export default function ProductDetailPage() {
             <div className="flex gap-3 overflow-x-auto pb-3" style={{ scrollbarWidth: "none" }}>
               {frequentlyBought.map((p) => (
                 <div key={p.id} style={{ width: "230px", minWidth: "230px", flexShrink: 0 }}>
-                  <ProductCard product={p} />
+                  <ProductCard product={p} role={role} />
                 </div>
               ))}
             </div>
@@ -579,7 +613,7 @@ export default function ProductDetailPage() {
             <div className="flex gap-3 overflow-x-auto pb-3" style={{ scrollbarWidth: "none" }}>
               {similarProducts.map((p) => (
                 <div key={p.id} style={{ width: "230px", minWidth: "230px", flexShrink: 0 }}>
-                  <ProductCard product={p} />
+                  <ProductCard product={p} role={role} />
                 </div>
               ))}
             </div>
@@ -593,7 +627,7 @@ export default function ProductDetailPage() {
             <div className="flex gap-3 overflow-x-auto pb-3" style={{ scrollbarWidth: "none" }}>
               {recentProducts.map((p) => (
                 <div key={p.id} style={{ width: "230px", minWidth: "230px", flexShrink: 0 }}>
-                  <ProductCard product={p} />
+                  <ProductCard product={p} role={role} />
                 </div>
               ))}
             </div>

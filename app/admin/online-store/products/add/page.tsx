@@ -10,6 +10,13 @@ const BADGE_COLORS = [
   { value: "pink", label: "Pink", bg: "#FCE7F3", color: "#DB2777" },
 ];
 
+const PRODUCT_TYPES = [
+  { value: "TABLET", label: "Tablet" },
+  { value: "GEL",    label: "Gel" },
+  { value: "SYRUP",  label: "Syrup" },
+  { value: "OTHER",  label: "Others" },
+];
+
 type DetailSection = { heading: string; content: string };
 
 function ImageUploader({
@@ -83,20 +90,25 @@ export default function AddShopProduct() {
   const router       = useRouter();
   const imgRefs      = useRef<{ main: string | null; extra: string[] }>({ main: null, extra: [] });
 
-  // Basic fields
+  // Product Card Info — name, badge, image ONLY
   const [name,          setName]         = useState("");
-  const [price,         setPrice]        = useState("");
-  const [offerPrice,    setOfferPrice]   = useState("");
   const [badge,         setBadge]        = useState("");
   const [badgeColor,    setBadgeColor]   = useState("red");
-  const [unit,          setUnit]         = useState("");
 
-  // Unit variants
+  // Pricing — customer & doctor, split
+  const [customerMrp,          setCustomerMrp]          = useState("");
+  const [customerOfferPercent, setCustomerOfferPercent] = useState("");
+  const [doctorMrp,            setDoctorMrp]            = useState("");
+  const [doctorPtrPrice,       setDoctorPtrPrice]       = useState("");
+  const [taxPercent,           setTaxPercent]           = useState("");
+
+  // Units, stock, product type, weight
+  const [unit,          setUnit]         = useState("");
   const [unitInput,      setUnitInput]     = useState("");
   const [availableUnits, setAvailableUnits]= useState<string[]>([]);
-
-  // Stock
   const [stock, setStock] = useState("");
+  const [productType,   setProductType]   = useState("OTHER");
+  const [weightInGrams, setWeightInGrams] = useState("");
 
   // Section / category
   const [sectionId,    setSectionId]   = useState("");
@@ -207,10 +219,14 @@ export default function AddShopProduct() {
     setDetailSections((p) => p.map((s, idx) => idx === i ? { ...s, [field]: val } : s));
 
   const handleSubmit = async () => {
-    if (!name.trim())         { setError("Product name required.");   return; }
-    if (!offerPrice)          { setError("Offer price required.");    return; }
-    if (!imgRefs.current.main){ setError("Main image required.");     return; }
+    if (!name.trim())          { setError("Product name required.");   return; }
+    if (!customerMrp)           { setError("Customer M.R.P required."); return; }
+    if (!imgRefs.current.main) { setError("Main image required.");     return; }
     if (mainUploading || extraUploading) { setError("Wait for uploads to finish."); return; }
+    if (productType !== "TABLET" && !weightInGrams) {
+      setError("Weight (grams) is required for delivery calculation, unless the product type is Tablet.");
+      return;
+    }
 
     setError(""); setSubmitting(true);
     try {
@@ -221,8 +237,6 @@ export default function AddShopProduct() {
         headers: { "Content-Type": "application/json" },
        body: JSON.stringify({
           name:                 name.trim(),
-          price:                price ? Number(price) : null,
-          offerPrice:           Number(offerPrice),
           badge:                badge || null,
           badgeColor,
           mainImage:            imgRefs.current.main,
@@ -240,6 +254,15 @@ export default function AddShopProduct() {
           productDescription:   productDescription || null,
           offers,
           frequentlyBoughtIds,
+
+          customerMrp:          Number(customerMrp),
+          customerOfferPercent: customerOfferPercent || null,
+          doctorMrp:            doctorMrp || null,
+          doctorPtrPrice:       doctorPtrPrice || null,
+          taxPercent:           taxPercent || null,
+
+          productType,
+          weightInGrams:        weightInGrams || null,
         }),
       });
       const data = await res.json();
@@ -274,10 +297,9 @@ export default function AddShopProduct() {
 
         {/* ── 1. Product Card Info ── */}
         <div className="bg-white p-6 rounded-xl" style={{ border: "1px solid #E5E7EB" }}>
-          {sectionHeader("1. Product Card Info", "Shown on shop listing cards")}
+          {sectionHeader("1. Product Card Info", "Name, badge, and image only — shown on shop listing cards")}
 
           <div className="space-y-4">
-            {/* Name */}
             <div>
               <label className="block text-[12px] font-semibold text-gray-700 mb-1.5">
                 Product Name <span className="text-red-500">*</span>
@@ -287,27 +309,6 @@ export default function AddShopProduct() {
                 onFocus={onFocus} onBlur={onBlur} />
             </div>
 
-            {/* Prices */}
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <label className="block text-[12px] font-semibold text-gray-700 mb-1.5">
-                  M.R.P (Original Price) <span className="text-gray-400 font-normal">(optional)</span>
-                </label>
-                <input type="number" value={price} onChange={(e) => setPrice(e.target.value)}
-                  placeholder="e.g. 153" className={inputCls} style={inputStyle}
-                  onFocus={onFocus} onBlur={onBlur} />
-              </div>
-              <div>
-                <label className="block text-[12px] font-semibold text-gray-700 mb-1.5">
-                  Offer / Selling Price <span className="text-red-500">*</span>
-                </label>
-                <input type="number" value={offerPrice} onChange={(e) => setOfferPrice(e.target.value)}
-                  placeholder="e.g. 105" className={inputCls} style={inputStyle}
-                  onFocus={onFocus} onBlur={onBlur} />
-              </div>
-            </div>
-
-            {/* Badge */}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <label className="block text-[12px] font-semibold text-gray-700 mb-1.5">
@@ -335,7 +336,6 @@ export default function AddShopProduct() {
               </div>
             </div>
 
-            {/* Main image */}
             <ImageUploader
               label="Main Product Image" required
               preview={mainPreview} uploading={mainUploading} uploaded={mainUploaded}
@@ -366,12 +366,112 @@ export default function AddShopProduct() {
           <p className="text-[10px] text-gray-400 mt-2">Click the box to add more images. Main image always shows first.</p>
         </div>
 
-        {/* ── 3. Units & Stock ── */}
+        {/* ── 3. Pricing — Customer & Doctor ── */}
         <div className="bg-white p-6 rounded-xl" style={{ border: "1px solid #E5E7EB" }}>
-          {sectionHeader("3. Units & Stock", "Pack sizes users can select on product page")}
+          {sectionHeader("3. Pricing", "Separate pricing for customers and doctors")}
+
+          <div className="grid grid-cols-2 gap-6">
+            {/* Customer pricing */}
+            <div className="p-4 rounded-xl" style={{ backgroundColor: "#FAFAFA" }}>
+              <p className="text-[12px] font-extrabold text-gray-800 mb-3 uppercase tracking-wide">Customer</p>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-[12px] font-semibold text-gray-700 mb-1.5">
+                    M.R.P <span className="text-red-500">*</span>
+                  </label>
+                  <input type="number" value={customerMrp} onChange={(e) => setCustomerMrp(e.target.value)}
+                    placeholder="e.g. 153" className={inputCls} style={{ ...inputStyle, backgroundColor: "#FFFFFF" }}
+                    onFocus={onFocus} onBlur={onBlur} />
+                </div>
+                <div>
+                  <label className="block text-[12px] font-semibold text-gray-700 mb-1.5">
+                    Offer <span className="text-gray-400 font-normal">(%, optional)</span>
+                  </label>
+                  <input type="number" value={customerOfferPercent} onChange={(e) => setCustomerOfferPercent(e.target.value)}
+                    placeholder="e.g. 10" className={inputCls} style={{ ...inputStyle, backgroundColor: "#FFFFFF" }}
+                    onFocus={onFocus} onBlur={onBlur} />
+                  <p className="text-[10px] text-gray-400 mt-1">
+                    If left blank, the M.R.P is shown struck-through with the same M.R.P repeated next to it.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            {/* Doctor pricing */}
+            <div className="p-4 rounded-xl" style={{ backgroundColor: "#FAFAFA" }}>
+              <p className="text-[12px] font-extrabold text-gray-800 mb-3 uppercase tracking-wide">Doctor</p>
+              <div className="space-y-3">
+                <div>
+                  <label className="block text-[12px] font-semibold text-gray-700 mb-1.5">
+                    M.R.P <span className="text-gray-400 font-normal">(optional)</span>
+                  </label>
+                  <input type="number" value={doctorMrp} onChange={(e) => setDoctorMrp(e.target.value)}
+                    placeholder="defaults to customer M.R.P" className={inputCls} style={{ ...inputStyle, backgroundColor: "#FFFFFF" }}
+                    onFocus={onFocus} onBlur={onBlur} />
+                </div>
+                <div>
+                  <label className="block text-[12px] font-semibold text-gray-700 mb-1.5">
+                    PTR Price <span className="text-gray-400 font-normal">(optional)</span>
+                  </label>
+                  <input type="number" value={doctorPtrPrice} onChange={(e) => setDoctorPtrPrice(e.target.value)}
+                    placeholder="e.g. 95" className={inputCls} style={{ ...inputStyle, backgroundColor: "#FFFFFF" }}
+                    onFocus={onFocus} onBlur={onBlur} />
+                  <p className="text-[10px] text-gray-400 mt-1">M.R.P always shows struck-through; PTR is the doctor's actual price.</p>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="mt-4">
+            <label className="block text-[12px] font-semibold text-gray-700 mb-1.5">
+              Tax <span className="text-gray-400 font-normal">(%, optional — doctor orders only)</span>
+            </label>
+            <input type="number" value={taxPercent} onChange={(e) => setTaxPercent(e.target.value)}
+              placeholder="e.g. 12" className={inputCls} style={{ ...inputStyle, maxWidth: "160px" }}
+              onFocus={onFocus} onBlur={onBlur} />
+            <p className="text-[10px] text-gray-400 mt-1">
+              Never shown on product cards or pages — only calculated into the order summary total for doctor orders.
+            </p>
+          </div>
+        </div>
+
+        {/* ── 4. Units & Stock ── */}
+        <div className="bg-white p-6 rounded-xl" style={{ border: "1px solid #E5E7EB" }}>
+          {sectionHeader("4. Units & Stock", "Pack sizes, stock, and delivery weight info")}
 
           <div className="space-y-4">
-            {/* Display unit */}
+            <div>
+              <label className="block text-[12px] font-semibold text-gray-700 mb-1.5">
+                Product Type <span className="text-red-500">*</span>
+              </label>
+              <div className="flex gap-2">
+                {PRODUCT_TYPES.map((t) => (
+                  <button key={t.value} type="button" onClick={() => setProductType(t.value)}
+                    className="px-4 py-2 rounded-lg text-[12.5px] font-semibold border-2 transition-all"
+                    style={{
+                      backgroundColor: productType === t.value ? "#F0FDF4" : "transparent",
+                      borderColor:     productType === t.value ? "#14532D" : "#E5E7EB",
+                      color:           productType === t.value ? "#14532D" : "#6B7280",
+                    }}>
+                    {t.label}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[12px] font-semibold text-gray-700 mb-1.5">
+                Weight <span className="text-gray-400 font-normal">
+                  {productType === "TABLET" ? "(not used for tablets)" : "(grams — used for delivery calculation)"}
+                </span>
+              </label>
+              <input type="number" value={weightInGrams} onChange={(e) => setWeightInGrams(e.target.value)}
+                placeholder="e.g. 300" disabled={productType === "TABLET"}
+                className={inputCls} style={{ ...inputStyle, maxWidth: "200px", opacity: productType === "TABLET" ? 0.5 : 1 }}
+                onFocus={onFocus} onBlur={onBlur} />
+              <p className="text-[10px] text-gray-400 mt-1">For liquids, enter the ml amount here as grams (1ml ≈ 1g).</p>
+            </div>
+
             <div>
               <label className="block text-[12px] font-semibold text-gray-700 mb-1.5">
                 Display Unit <span className="text-gray-400 font-normal">(shown after product name)</span>
@@ -382,7 +482,6 @@ export default function AddShopProduct() {
                 onFocus={onFocus} onBlur={onBlur} />
             </div>
 
-            {/* Available pack sizes */}
             <div>
               <label className="block text-[12px] font-semibold text-gray-700 mb-1.5">
                 Available Pack Sizes
@@ -419,7 +518,6 @@ export default function AddShopProduct() {
               <p className="text-[10px] text-gray-400 mt-1.5">Press Enter or click Add. Users can select their preferred pack size.</p>
             </div>
 
-            {/* Stock */}
             <div>
               <label className="block text-[12px] font-semibold text-gray-700 mb-1.5">
                 Available Stock <span className="text-gray-400 font-normal">(number of units)</span>
@@ -432,9 +530,9 @@ export default function AddShopProduct() {
           </div>
         </div>
 
-        {/* ── 4. Category & Section ── */}
+        {/* ── 5. Category & Section ── */}
         <div className="bg-white p-6 rounded-xl" style={{ border: "1px solid #E5E7EB" }}>
-          {sectionHeader("4. Category & Section")}
+          {sectionHeader("5. Category & Section")}
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
               <label className="block text-[12px] font-semibold text-gray-700 mb-1.5">Category</label>
@@ -467,11 +565,10 @@ export default function AddShopProduct() {
           )}
         </div>
 
-        {/* ── 5. Product Detail Page Content ── */}
+        {/* ── 6. Product Detail Page Content ── */}
         <div className="bg-white p-6 rounded-xl" style={{ border: "1px solid #E5E7EB" }}>
-          {sectionHeader("5. Product Detail Page", "Content shown on the individual product page")}
+          {sectionHeader("6. Product Detail Page", "Content shown on the individual product page")}
 
-          {/* Doctor offer */}
           <div className="mb-5">
             <label className="block text-[12px] font-semibold text-gray-700 mb-1.5">
               Doctor&apos;s Exclusive Offer <span className="text-gray-400 font-normal">(optional)</span>
@@ -482,7 +579,6 @@ export default function AddShopProduct() {
               style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
           </div>
 
-          {/* Product detail sections */}
           <div className="mb-5">
             <div className="flex items-center justify-between mb-3">
               <div>
@@ -540,7 +636,6 @@ export default function AddShopProduct() {
             </div>
           </div>
 
-          {/* Manufacturer details */}
           <div className="mb-5">
             <label className="block text-[12px] font-semibold text-gray-700 mb-1.5">
               Manufacturer Details <span className="text-gray-400 font-normal">(optional)</span>
@@ -551,7 +646,6 @@ export default function AddShopProduct() {
               style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
           </div>
 
-          {/* Benefits */}
           <div className="mb-5">
             <label className="block text-[12px] font-semibold text-gray-700 mb-1.5">
               Benefits <span className="text-gray-400 font-normal">(optional)</span>
@@ -562,7 +656,6 @@ export default function AddShopProduct() {
               style={inputStyle} onFocus={onFocus} onBlur={onBlur} />
           </div>
 
-          {/* Product description */}
           <div>
             <label className="block text-[12px] font-semibold text-gray-700 mb-1.5">
               Product Description <span className="text-gray-400 font-normal">(optional)</span>
@@ -574,9 +667,9 @@ export default function AddShopProduct() {
           </div>
         </div>
 
-        {/* ── 6. Available Offers ── */}
+        {/* ── 7. Available Offers ── */}
         <div className="bg-white p-6 rounded-xl" style={{ border: "1px solid #E5E7EB" }}>
-          {sectionHeader("6. Available Offers", "Shown only if at least one offer is added")}
+          {sectionHeader("7. Available Offers", "Shown only if at least one offer is added")}
           <div className="flex gap-2 mb-3">
             <input
               type="text"
@@ -608,9 +701,9 @@ export default function AddShopProduct() {
           )}
         </div>
 
-        {/* ── 7. Frequently Bought Together ── */}
+        {/* ── 8. Frequently Bought Together ── */}
         <div className="bg-white p-6 rounded-xl" style={{ border: "1px solid #E5E7EB" }}>
-          {sectionHeader("7. Frequently Bought Together", "Select existing products to recommend alongside this one")}
+          {sectionHeader("8. Frequently Bought Together", "Select existing products to recommend alongside this one")}
 
           <div className="relative mb-3">
             <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />

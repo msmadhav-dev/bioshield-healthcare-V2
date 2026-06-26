@@ -10,8 +10,9 @@ type Role = "CUSTOMER" | "DOCTOR" | "";
 type Gender = "MALE" | "FEMALE" | "OTHER" | "";
 
 export type AuthUser = {
-  id: string; name: string; phone: string; role: string;
+  id: string; name: string; email?: string | null; phone: string; role: string;
   hospitalName?: string | null; gender: string; age: number;
+  city?: string | null; walletBalance?: number;
 };
 
 // Shared design tokens for this modal (kept local since this screen intentionally
@@ -96,6 +97,7 @@ export default function AuthModal({
   const [hospitalName, setHospitalName] = useState("");
   const [gender,       setGender]       = useState<Gender>("");
   const [age,          setAge]          = useState("");
+  const [email,        setEmail]        = useState("");
 
   const [loading, setLoading]   = useState(false);
   const [error,   setError]     = useState("");
@@ -109,7 +111,7 @@ export default function AuthModal({
   const resetAndClose = () => {
     setTab("new"); setStep("phone");
     setName(""); setPhone(""); setOtp(Array(6).fill(""));
-    setRole(""); setHospitalName(""); setGender(""); setAge("");
+    setRole(""); setHospitalName(""); setGender(""); setAge(""); setEmail("");
     setError(""); setLoading(false); setOtpToken("");
     onClose();
   };
@@ -188,6 +190,7 @@ export default function AuthModal({
     if (role === "DOCTOR" && !hospitalName.trim()) { setError("Please enter your hospital name."); return; }
     if (!gender)                                   { setError("Please select your gender."); return; }
     if (!age || Number(age) <= 0 || Number(age) > 120) { setError("Please enter a valid age."); return; }
+    if (!email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) { setError("Please enter a valid email address."); return; }
 
     setLoading(true);
     try {
@@ -195,7 +198,7 @@ export default function AuthModal({
         method:  "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name, role,
+          name, email, role,
           hospitalName: role === "DOCTOR" ? hospitalName : null,
           gender, age: Number(age),
           token: otpToken,
@@ -398,6 +401,18 @@ export default function AuthModal({
                       />
                     </div>
                   )}
+
+                  <div className="mb-5">
+                    <label className="block text-[12.5px] font-semibold text-gray-700 mb-2">
+                      Email <span className="text-red-500">*</span>
+                    </label>
+                    <input
+                      type="email" value={email} onChange={(e) => setEmail(e.target.value)}
+                      placeholder="you@example.com"
+                      className="w-full px-4 py-3.5 text-[14px] outline-none text-gray-900 placeholder-gray-400"
+                      style={inputStyle} onFocus={onFocus} onBlur={onBlur}
+                    />
+                  </div>
 
                   <div className="mb-5">
                     <label className="block text-[12.5px] font-semibold text-gray-700 mb-2.5">
