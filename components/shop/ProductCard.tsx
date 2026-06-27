@@ -15,14 +15,17 @@ export type ShopProductType = {
 };
 
 export default function ProductCard({
-  product, role = "CUSTOMER",
+  product, role = "CUSTOMER", isLiked = false, onToggleLike,
 }: {
   product: ShopProductType | null | undefined;
   role?: Role;
+  isLiked?: boolean;
+  onToggleLike?: (productId: string) => void;
 }) {
   const router = useRouter();
   const [adding, setAdding] = useState(false);
   const [added,  setAdded]  = useState(false);
+  const [heartPulse, setHeartPulse] = useState(false);
 
   if (!product) return null;
 
@@ -49,6 +52,13 @@ export default function ProductCard({
       setTimeout(() => setAdded(false), 2000);
     } catch {}
     finally { setAdding(false); }
+  };
+
+  const handleToggleLike = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setHeartPulse(true);
+    setTimeout(() => setHeartPulse(false), 300);
+    onToggleLike?.(product.id);
   };
 
   return (
@@ -90,13 +100,19 @@ export default function ProductCard({
           </span>
         ) : null}
 
-        {/* Wishlist — no background, orange, slightly bigger on desktop */}
+        {/* Wishlist — fills orange when liked, with a quick pulse on click */}
         <button
           type="button"
-          className="absolute top-2 right-2 md:top-3 md:right-3 z-10 flex items-center justify-center"
-          onClick={(e) => e.stopPropagation()}
+          className="absolute top-2 right-2 md:top-3 md:right-3 z-10 flex items-center justify-center transition-transform"
+          onClick={handleToggleLike}
+          style={{ transform: heartPulse ? "scale(1.35)" : "scale(1)", transition: "transform 0.18s ease" }}
         >
-          <Heart className="w-[17px] h-[17px] md:w-[22px] md:h-[22px]" style={{ color: "#F97316" }} strokeWidth={1.8} />
+          <Heart
+            className="w-[17px] h-[17px] md:w-[22px] md:h-[22px]"
+            style={{ color: "#F97316" }}
+            strokeWidth={1.8}
+            fill={isLiked ? "#F97316" : "none"}
+          />
         </button>
 
         <img

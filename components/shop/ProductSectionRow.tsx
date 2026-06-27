@@ -5,11 +5,19 @@ import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import ProductCard, { type ShopProductType } from "./ProductCard";
 import { useUserRole } from "@/lib/useUserRole";
+import { useLikedProducts } from "@/lib/useLikedProducts";
 import type { Role } from "@/lib/pricing";
 
 const CARD_WIDTH = 260;
 
-function HorizontalProductRow({ products, role }: { products: ShopProductType[] | undefined | null; role: Role }) {
+function HorizontalProductRow({
+  products, role, likedIds, onToggleLike,
+}: {
+  products: ShopProductType[] | undefined | null;
+  role: Role;
+  likedIds: Set<string>;
+  onToggleLike: (id: string) => void;
+}) {
   const list = Array.isArray(products) ? products.filter(Boolean) : [];
 
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -106,7 +114,7 @@ function HorizontalProductRow({ products, role }: { products: ShopProductType[] 
               if (dragState.current.moved) { e.preventDefault(); e.stopPropagation(); }
             }}
           >
-            <ProductCard product={product} role={role} />
+            <ProductCard product={product} role={role} isLiked={likedIds.has(product.id)} onToggleLike={onToggleLike} />
           </div>
         ))}
       </div>
@@ -144,6 +152,7 @@ export function useShopSections() {
 export function SectionRow({ section }: { section: Section }) {
   const [products, setProducts] = useState<ShopProductType[]>([]);
   const role = useUserRole();
+  const { likedIds, toggleLike } = useLikedProducts();
 
   useEffect(() => {
     fetch(`/api/shop-products?sectionId=${section.id}`)
@@ -170,7 +179,7 @@ export function SectionRow({ section }: { section: Section }) {
         {section.subtitle && <p className="text-[13px] text-gray-500 mt-0.5">{section.subtitle}</p>}
       </div>
 
-      <HorizontalProductRow products={products} role={role} />
+      <HorizontalProductRow products={products} role={role} likedIds={likedIds} onToggleLike={toggleLike} />
     </motion.div>
   );
 }

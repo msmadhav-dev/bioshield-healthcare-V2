@@ -118,7 +118,7 @@ export default function ShopNavbar({
 }) {
   const router = useRouter();
   const pathname = usePathname();
-  const isAccountPage = pathname?.startsWith("/shop/account") ?? false;
+  const isAccountPage = pathname === "/shop/account" || pathname?.startsWith("/shop/account/") || pathname === "/shop/cart";
   const [scrolled, setScrolled] = useState(false);
   const [authOpen, setAuthOpen] = useState(false);
   const [loggedInUser, setLoggedInUser] = useState<AuthUser | null>(null);

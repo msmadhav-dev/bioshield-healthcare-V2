@@ -78,6 +78,7 @@ model ShopProduct {
   weightInGrams Float? // grams (liquids entered as 1ml ≈ 1g equivalent)
 
   cartItems CartItem[]
+  likedBy   LikedProduct[]
 
   @@map("shop_products")
 }
@@ -140,8 +141,21 @@ model User {
   addresses Address[]
   doctorVerification DoctorVerification?
   cartItems CartItem[]
+  likedProducts LikedProduct[]
 
   @@map("users")
+}
+
+model LikedProduct {
+  id            String   @id @default(cuid())
+  userId        String
+  user          User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  shopProductId String
+  shopProduct   ShopProduct @relation(fields: [shopProductId], references: [id], onDelete: Cascade)
+  createdAt     DateTime @default(now())
+
+  @@unique([userId, shopProductId])
+  @@map("liked_products")
 }
 
 model CartItem {

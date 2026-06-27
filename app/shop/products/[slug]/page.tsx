@@ -9,6 +9,7 @@ import {
 import Link from "next/link";
 import ProductCard, { type ShopProductType } from "@/components/shop/ProductCard";
 import { useUserRole } from "@/lib/useUserRole";
+import { useLikedProducts } from "@/lib/useLikedProducts";
 import { getCustomerPricing, getDoctorPricing } from "@/lib/pricing";
 
 type DetailSection = { heading: string; content: string };
@@ -50,6 +51,7 @@ export default function ProductDetailPage() {
   const [doctorFreeDeliveryThreshold,   setDoctorFreeDeliveryThreshold]   = useState(1000);
   const [activeTab,         setActiveTab]         = useState<TabKey>("details");
   const role = useUserRole();
+  const { likedIds, toggleLike } = useLikedProducts();
 
   // Fetch product
   useEffect(() => {
@@ -599,7 +601,7 @@ export default function ProductDetailPage() {
             <div className="flex gap-3 overflow-x-auto pb-3" style={{ scrollbarWidth: "none" }}>
               {frequentlyBought.map((p) => (
                 <div key={p.id} style={{ width: "230px", minWidth: "230px", flexShrink: 0 }}>
-                  <ProductCard product={p} role={role} />
+                  <ProductCard product={p} role={role} isLiked={likedIds.has(p.id)} onToggleLike={toggleLike} />
                 </div>
               ))}
             </div>
@@ -613,7 +615,7 @@ export default function ProductDetailPage() {
             <div className="flex gap-3 overflow-x-auto pb-3" style={{ scrollbarWidth: "none" }}>
               {similarProducts.map((p) => (
                 <div key={p.id} style={{ width: "230px", minWidth: "230px", flexShrink: 0 }}>
-                  <ProductCard product={p} role={role} />
+                  <ProductCard product={p} role={role} isLiked={likedIds.has(p.id)} onToggleLike={toggleLike} />
                 </div>
               ))}
             </div>
@@ -627,7 +629,7 @@ export default function ProductDetailPage() {
             <div className="flex gap-3 overflow-x-auto pb-3" style={{ scrollbarWidth: "none" }}>
               {recentProducts.map((p) => (
                 <div key={p.id} style={{ width: "230px", minWidth: "230px", flexShrink: 0 }}>
-                  <ProductCard product={p} role={role} />
+                  <ProductCard product={p} role={role} isLiked={likedIds.has(p.id)} onToggleLike={toggleLike} />
                 </div>
               ))}
             </div>
