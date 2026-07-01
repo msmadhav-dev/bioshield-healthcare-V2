@@ -5,7 +5,7 @@ import AccountSidebar from "@/components/account/AccountSidebar";
 import LogoutConfirmModal from "@/components/account/LogoutConfirmModal";
 import { AccountProvider, useAccount } from "@/components/account/AccountContext";
 
-function Shell({ children }: { children: React.ReactNode }) {
+function Shell({ children, bgColor = "#FFFFFF" }: { children: React.ReactNode; bgColor?: string }) {
   const { user, loading, logout } = useAccount();
   const [confirmOpen, setConfirmOpen] = useState(false);
 
@@ -17,7 +17,7 @@ function Shell({ children }: { children: React.ReactNode }) {
 
   return (
     <>
-      <div className="pt-[100px] md:pt-[68px]" style={{ minHeight: "100vh", backgroundColor: "#F7F7F7" }}>
+      <div className="pt-[100px] md:pt-[68px]" style={{ minHeight: "100vh", backgroundColor: bgColor }}>
         <div className="mx-auto px-4 md:px-8 py-6" style={{ maxWidth: "1500px" }}>
           <AccountSidebar onLogoutClick={() => setConfirmOpen(true)} />
 
@@ -45,10 +45,15 @@ function Shell({ children }: { children: React.ReactNode }) {
   );
 }
 
-export default function AccountPageShell({ children }: { children: React.ReactNode }) {
+export default function AccountPageShell({
+  children, bgColor,
+}: {
+  children: React.ReactNode;
+  bgColor?: string;
+}) {
   return (
     <AccountProvider>
-      <Shell>{children}</Shell>
+      <Shell bgColor={bgColor}>{children}</Shell>
     </AccountProvider>
   );
 }

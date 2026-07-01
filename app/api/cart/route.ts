@@ -4,6 +4,7 @@ import { verifySessionToken, SESSION_COOKIE_NAME } from "@/lib/sessionToken";
 import {
   getDisplayPrice, getCustomerPricing, getDoctorPricing,
   lineItemWeightGrams, calculateDeliveryFee, calculateDoctorTax,
+  getDeliveryEstimate, getCouponDiscount,
 } from "@/lib/pricing";
 
 function getUserId(req: NextRequest): string | null {
@@ -11,15 +12,15 @@ function getUserId(req: NextRequest): string | null {
   return token ? verifySessionToken(token) : null;
 }
 
-// GET /api/cart — full cart with computed pricing, weight, delivery fee, and
-// (for doctors) combined tax, all calculated server-side so the client never
-// has to duplicate this math.
+// GET /api/cart — full cart with computed pricing, weight, delivery fee,
+// per-item MRP/discount breakdown, applied coupon, default address, and
+// (for doctors) combined tax — all calculated server-side.
 export async function GET(req: NextRequest) {
   const userId = getUserId(req);
   if (!userId) return NextResponse.json({ error: "Not logged in." }, { status: 401 });
 
   try {
-    const [user, settings, items] = await Promise.all([
+    const [user, settings, items, addresses] = await Promise.all([
       prisma.user.findUnique({ where: { id: userId } }),
       prisma.siteSettings.findUnique({ where: { id: "global" } }),
       prisma.cartItem.findMany({
@@ -27,20 +28,38 @@ export async function GET(req: NextRequest) {
         include: { shopProduct: true },
         orderBy: { createdAt: "asc" },
       }),
+      prisma.address.findMany({ where: { userId }, orderBy: { createdAt: "asc" } }),
     ]);
 
     const role = user?.role as "CUSTOMER" | "DOCTOR" | undefined;
-    const ds = settings || { deliveryChargePerKg: 30, customerFreeDeliveryThreshold: 500, doctorFreeDeliveryThreshold: 1000 };
+    const ds = settings || {
+      deliveryChargePerKg: 30, customerFreeDeliveryThreshold: 500, doctorFreeDeliveryThreshold: 1000,
+      deliveryCutoffHour: 13, deliveryFastDaysMin: 1, deliveryFastDaysMax: 2,
+      deliverySlowDaysMin: 2, deliverySlowDaysMax: 3,
+    };
+    const isDoctor = role === "DOCTOR";
 
-    let subtotal = 0;
+    let mrpTotal = 0;
+    let itemDiscountTotal = 0;
     let totalWeightGrams = 0;
 
     const lines = items.map((item) => {
       const p = item.shopProduct;
-      const unitPrice = getDisplayPrice(p, role);
-      const lineTotal = unitPrice * item.quantity;
-      subtotal += lineTotal;
-      totalWeightGrams += lineItemWeightGrams(p, item.quantity);
+      const customerPricing = getCustomerPricing(p);
+      const doctorPricing   = getDoctorPricing(p);
+
+      const mrp       = isDoctor ? doctorPricing.mrp : customerPricing.mrp;
+      const unitPrice = isDoctor ? doctorPricing.ptr : customerPricing.offerPrice;
+      const lineMrp      = mrp * item.quantity;
+      const lineTotal     = unitPrice * item.quantity;
+      const lineDiscount  = lineMrp - lineTotal;
+      const discountPercent = isDoctor
+        ? (mrp > 0 ? Math.round(((mrp - unitPrice) / mrp) * 100) : 0)
+        : (p.customerOfferPercent || 0);
+
+      mrpTotal          += lineMrp;
+      itemDiscountTotal += lineDiscount;
+      totalWeightGrams  += lineItemWeightGrams(p, item.quantity);
 
       return {
         id:           item.id,
@@ -48,29 +67,53 @@ export async function GET(req: NextRequest) {
         selectedUnit: item.selectedUnit,
         unitPrice,
         lineTotal,
+        lineMrp,
+        lineDiscount,
+        discountPercent,
         product: {
           id: p.id, name: p.name, slug: p.slug, mainImage: p.mainImage,
-          unit: p.unit, availableUnits: p.availableUnits,
-          customerPricing: getCustomerPricing(p),
-          doctorPricing:   getDoctorPricing(p),
+          unit: p.unit, availableUnits: p.availableUnits, stock: p.stock,
+          customerPricing, doctorPricing,
         },
       };
     });
 
-    const { fee: deliveryFee, isFree: freeDelivery } = calculateDeliveryFee(totalWeightGrams, subtotal, role, ds);
-    const tax = role === "DOCTOR"
+    const subtotalAfterMrpDiscount = mrpTotal - itemDiscountTotal; // == sum of lineTotal
+
+    const couponCode     = user?.appliedCouponCode || null;
+    const couponDiscount = getCouponDiscount(couponCode, subtotalAfterMrpDiscount);
+    const discountedValue = subtotalAfterMrpDiscount - couponDiscount;
+
+    const { fee: deliveryFee, isFree: freeDelivery } = calculateDeliveryFee(totalWeightGrams, discountedValue, role, ds);
+    const tax = isDoctor
       ? calculateDoctorTax(items.map((i) => ({ product: i.shopProduct, quantity: i.quantity })))
       : 0;
 
+    const freeDeliveryThreshold = isDoctor ? ds.doctorFreeDeliveryThreshold : ds.customerFreeDeliveryThreshold;
+    const amountToFreeDelivery  = Math.max(0, freeDeliveryThreshold - discountedValue);
+
+    const deliveryEstimate = getDeliveryEstimate(ds);
+    const defaultAddress   = addresses.find((a) => a.isDefault) || null;
+
     return NextResponse.json({
       items: lines,
-      subtotal,
+      mrpTotal,
+      itemDiscountTotal,
+      subtotalAfterMrpDiscount,
+      couponCode,
+      couponDiscount,
+      discountedValue,
       totalWeightGrams,
       deliveryFee,
       freeDelivery,
+      freeDeliveryThreshold,
+      amountToFreeDelivery,
       tax,
-      total: subtotal + deliveryFee + tax,
+      total: discountedValue + deliveryFee + tax,
       role: role || "CUSTOMER",
+      deliveryEstimate: deliveryEstimate.text,
+      defaultAddress,
+      addresses,
     });
   } catch (err) {
     console.error(err);

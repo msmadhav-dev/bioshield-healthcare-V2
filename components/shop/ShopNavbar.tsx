@@ -1,140 +1,304 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import Link from "next/link";
 import { useRouter, usePathname } from "next/navigation";
 import Image from "next/image";
-import { Search, ChevronDown } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 import AuthModal, { type AuthUser } from "@/components/shop/AuthModal";
+import { useLikedProducts } from "@/lib/useLikedProducts";
 
-const searchTerms = [
-  "search for products",
-  "healthcare solutions",
-  "medicines",
-  "dental care",
-];
+type Category = { id: string; name: string };
 
-function AnimatedPlaceholder() {
-  const [index, setIndex] = useState(0);
+const SEARCH_WORDS = ["Medicine", "Pharmacy", "Supplements"];
+
+function SvgIcon({
+  src,
+  alt = "",
+  size,
+  className = "",
+}: {
+  src: string;
+  alt?: string;
+  size: number;
+  className?: string;
+}) {
+  return (
+    <img
+      src={src}
+      alt={alt}
+      width={size}
+      height={size}
+      className={`block flex-shrink-0 ${className}`}
+      style={{ width: size, height: size }}
+    />
+  );
+}
+
+/* Icon rendered as a CSS mask so its fill color can be controlled and
+   transitioned on hover (black -> shop primary green), regardless of the
+   source SVG's own fill/stroke colors. */
+function HoverIcon({
+  src,
+  alt = "",
+  size,
+  className = "",
+}: {
+  src: string;
+  alt?: string;
+  size: number;
+  className?: string;
+}) {
+  return (
+    <span
+      role="img"
+      aria-label={alt}
+      className={`inline-block flex-shrink-0 bg-black transition-colors duration-200 group-hover:bg-[var(--shop-primary-green)] ${className}`}
+      style={{
+        width: size,
+        height: size,
+        WebkitMaskImage: `url(${src})`,
+        maskImage: `url(${src})`,
+        WebkitMaskSize: "contain",
+        maskSize: "contain",
+        WebkitMaskRepeat: "no-repeat",
+        maskRepeat: "no-repeat",
+        WebkitMaskPosition: "center",
+        maskPosition: "center",
+      }}
+    />
+  );
+}
+
+/* Typewriter-style animated placeholder: types each word out, pauses,
+   deletes it, then moves to the next word in SEARCH_WORDS. */
+function AnimatedSearchPlaceholder() {
+  const [wordIndex, setWordIndex] = useState(0);
+  const [charCount, setCharCount] = useState(0);
+  const [deleting, setDeleting] = useState(false);
 
   useEffect(() => {
-    const t = setInterval(() => setIndex((p) => (p + 1) % searchTerms.length), 2400);
-    return () => clearInterval(t);
-  }, []);
+    const currentWord = SEARCH_WORDS[wordIndex];
+
+    let delay = deleting ? 45 : 90;
+    if (!deleting && charCount === currentWord.length) delay = 1300;
+    if (deleting && charCount === 0) delay = 300;
+
+    const t = setTimeout(() => {
+      if (!deleting) {
+        if (charCount < currentWord.length) setCharCount((c) => c + 1);
+        else setDeleting(true);
+      } else {
+        if (charCount > 0) setCharCount((c) => c - 1);
+        else {
+          setDeleting(false);
+          setWordIndex((i) => (i + 1) % SEARCH_WORDS.length);
+        }
+      }
+    }, delay);
+
+    return () => clearTimeout(t);
+  }, [charCount, deleting, wordIndex]);
+
+  const currentWord = SEARCH_WORDS[wordIndex];
 
   return (
-    <span className="relative block overflow-hidden text-gray-400 text-[13.5px]" style={{ height: "20px" }}>
-      <AnimatePresence mode="wait">
-        <motion.span
-          key={index}
-          initial={{ y: 14, opacity: 0 }}
-          animate={{ y: 0,  opacity: 1 }}
-          exit={{    y: -14, opacity: 0 }}
-          transition={{ duration: 0.26, ease: "easeInOut" }}
-          className="absolute left-0 whitespace-nowrap text-gray-400"
-        >
-          {searchTerms[index]}
-        </motion.span>
-      </AnimatePresence>
+    <span className="flex items-center text-[13.5px]" style={{ color: "var(--shop-text-secondary)" }}>
+      Search&nbsp;
+      <span className="whitespace-nowrap">
+        {currentWord.slice(0, charCount)}
+        <span
+          className="ml-[1px] inline-block w-[1px] animate-pulse align-middle"
+          style={{ height: "14px", backgroundColor: "var(--shop-text-secondary)" }}
+        />
+      </span>
     </span>
   );
 }
 
-function SearchBar({
-  compact    = false,
-  showButton = true,
-}: {
-  compact?:    boolean;
-  showButton?: boolean;
-}) {
-  const [query,   setQuery]   = useState("");
-  const [focused, setFocused] = useState(false);
+function CategoryDropdown({ compact = false }: { compact?: boolean }) {
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [selected, setSelected] = useState<Category | null>(null);
+  const [open, setOpen] = useState(false);
+  const ref = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    fetch("/api/categories")
+      .then((r) => r.json())
+      .then((d) => setCategories(Array.isArray(d.categories) ? d.categories : []))
+      .catch(() => {});
+  }, []);
+
+  useEffect(() => {
+    const onClickOutside = (e: MouseEvent) => {
+      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
+    };
+    document.addEventListener("mousedown", onClickOutside);
+    return () => document.removeEventListener("mousedown", onClickOutside);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative h-full flex-shrink-0">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className="flex h-full items-center gap-2 whitespace-nowrap pl-4 pr-3 text-[13px] font-semibold outline-none"
+        style={{ color: "var(--shop-text-primary)" }}
+      >
+        <span className={compact ? "max-w-[104px] truncate" : ""}>
+          {selected ? selected.name : "All Categories"}
+        </span>
+        <SvgIcon src="/icons/chevron-down.svg" size={12} />
+      </button>
+
+      {open && (
+        <div
+          className="absolute left-0 top-full z-10 mt-2 overflow-hidden py-1.5"
+          style={{
+            minWidth: "180px",
+            backgroundColor: "var(--shop-bg)",
+            border: "1px solid var(--shop-border)",
+            borderRadius: "8px",
+            boxShadow: "0 12px 28px rgba(0,0,0,0.10)",
+          }}
+        >
+          <button
+            type="button"
+            onClick={() => {
+              setSelected(null);
+              setOpen(false);
+            }}
+            className="w-full px-4 py-2 text-left text-[13px] font-medium transition-colors"
+            style={{ color: !selected ? "var(--shop-primary-green)" : "var(--shop-text-primary)" }}
+          >
+            All Categories
+          </button>
+
+          {categories.map((c) => (
+            <button
+              key={c.id}
+              type="button"
+              onClick={() => {
+                setSelected(c);
+                setOpen(false);
+              }}
+              className="w-full px-4 py-2 text-left text-[13px] font-medium transition-colors hover:bg-[var(--shop-light-green)]"
+              style={{ color: selected?.id === c.id ? "var(--shop-primary-green)" : "var(--shop-text-primary)" }}
+            >
+              {c.name}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CategorySearchBar({ compact = false }: { compact?: boolean }) {
+  const [query, setQuery] = useState("");
 
   return (
     <div
-      className="flex items-center w-full overflow-hidden"
+      className="flex w-full items-center overflow-hidden"
       style={{
-        border:          `1.5px solid ${focused ? "#9CA3AF" : "#E0E0E5"}`,
-        borderRadius:    "999px",
-        backgroundColor: "#FFFFFF",
-        height:          compact ? "40px" : "44px",
+        border: "1px solid var(--shop-border)",
+        borderRadius: "999px",
+        backgroundColor: "var(--shop-bg)",
+        height: compact ? "38px" : "46px",
       }}
     >
-      <Search size={15} className="ml-4 flex-shrink-0 text-gray-400" strokeWidth={2} />
+      <CategoryDropdown compact={compact} />
 
-      <div className="relative flex-1 overflow-hidden mx-2 h-full flex items-center">
+      <div className="h-5 w-px flex-shrink-0" style={{ backgroundColor: "var(--shop-border)" }} />
+
+      <div className="relative flex h-full flex-1 items-center px-4">
         {!query && (
-          <div className="absolute left-0 top-1/2 -translate-y-1/2 w-full pointer-events-none">
-            <AnimatedPlaceholder />
+          <div className="pointer-events-none absolute left-4 top-1/2 -translate-y-1/2">
+            <AnimatedSearchPlaceholder />
           </div>
         )}
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          onFocus={() => setFocused(true)}
-          onBlur={() => setFocused(false)}
-          className="w-full bg-transparent outline-none text-[13.5px] text-gray-800 h-full relative z-10"
+          className="relative z-10 h-full w-full bg-transparent text-[13.5px] outline-none"
+          style={{ color: "var(--shop-text-primary)" }}
         />
       </div>
 
-      {showButton && (
-        <button
-          type="button"
-          className="h-[34px] px-5 mr-[4px] text-white text-[13px] font-semibold flex-shrink-0 transition-colors"
-          style={{ backgroundColor: "#166534", borderRadius: "999px" }}
-          onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#14532D")}
-          onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#166534")}
-        >
-          Search
-        </button>
-      )}
+      <button
+        type="button"
+        className="mr-1.5 flex flex-shrink-0 items-center justify-center rounded-full"
+        style={{
+          width: compact ? "30px" : "38px",
+          height: compact ? "30px" : "38px",
+          backgroundColor: "var(--shop-primary-green)",
+        }}
+        aria-label="Search"
+      >
+        <SvgIcon src="/icons/search.svg" size={compact ? 14 : 16} className="brightness-0 invert" />
+      </button>
     </div>
   );
 }
 
-function LocationStrip({ city }: { city?: string | null }) {
+/* Small orange presence-dot shown on cart/liked icons when there's
+   something in them — no count, just an indicator. */
+function NotificationDot({ show }: { show: boolean }) {
+  if (!show) return null;
   return (
-    <button type="button" className="flex items-center gap-2 bg-transparent border-none outline-none cursor-pointer group w-fit">
-      <img src="/icons/location.svg" alt="" style={{ width: 18, height: 18 }} className="flex-shrink-0" />
-      <span className="text-[12px] text-gray-500">Deliver to</span>
-      <span className="text-[13px] font-bold text-gray-800 tracking-tight group-hover:text-brand-purple transition-colors">
-        {city || "Chennai"}
-      </span>
-      <ChevronDown size={13} className="text-gray-500" strokeWidth={2.5} />
+    <span
+      className="absolute -right-0.5 -top-0.5 block h-[10px] w-[10px] rounded-full"
+      style={{ backgroundColor: "var(--shop-accent-amber)", border: "2px solid var(--shop-bg)" }}
+    />
+  );
+}
+
+function LocationButton({ city, compact = false }: { city?: string | null; compact?: boolean }) {
+  if (compact) {
+    return (
+      <button type="button" className="group flex min-w-0 items-center gap-1.5 text-[13px] font-semibold outline-none">
+        <HoverIcon src="/icons/location.svg" alt="Location" size={16} />
+        <span className="whitespace-nowrap" style={{ color: "var(--shop-text-secondary)" }}>
+          Deliver to
+        </span>
+        <span className="min-w-0 truncate" style={{ color: "var(--shop-primary-green)" }}>
+          {city || "Chennai"}
+        </span>
+      </button>
+    );
+  }
+
+  return (
+    <button type="button" className="group flex flex-shrink-0 items-center gap-2.5 outline-none">
+      <HoverIcon src="/icons/location.svg" alt="Location" size={24} />
+      <div className="text-left">
+        <p className="mb-1 text-[13px] font-semibold leading-none" style={{ color: "var(--shop-text-secondary)" }}>
+          Deliver to
+        </p>
+        <p className="text-[16px] font-bold leading-none" style={{ color: "var(--shop-primary-green)" }}>
+          {city || "Chennai"}
+        </p>
+      </div>
     </button>
   );
 }
 
-export default function ShopNavbar({
-  cartCount  = 0,
-  isLoggedIn = false,
-  userName   = "",
-}: {
-  cartCount?:  number;
-  isLoggedIn?: boolean;
-  userName?:   string;
-}) {
+export default function ShopNavbar({ cartCount = 0 }: { cartCount?: number }) {
   const router = useRouter();
   const pathname = usePathname();
-  const isAccountPage = pathname === "/shop/account" || pathname?.startsWith("/shop/account/") || pathname === "/shop/cart";
-  const [scrolled, setScrolled] = useState(false);
+  const isAccountPage =
+    pathname === "/shop/account" || pathname?.startsWith("/shop/account/") || pathname === "/shop/cart";
+
   const [authOpen, setAuthOpen] = useState(false);
   const [loggedInUser, setLoggedInUser] = useState<AuthUser | null>(null);
+  const { likedIds } = useLikedProducts();
 
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 60);
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
-
-  // Restore login state from the session cookie on every page load/refresh —
-  // this is what fixes "refreshing logs me out".
   useEffect(() => {
     fetch("/api/auth/me")
       .then((r) => r.json())
-      .then((d) => { if (d.user) setLoggedInUser(d.user); })
+      .then((d) => {
+        if (d.user) setLoggedInUser(d.user);
+      })
       .catch(() => {});
   }, []);
 
@@ -145,217 +309,126 @@ export default function ShopNavbar({
 
   return (
     <>
-      {/* ════════ DESKTOP ════════ */}
+      {/* ── Desktop ── */}
       <header
-        className="fixed top-0 left-0 right-0 z-50 hidden md:flex items-center w-full h-[68px] gap-8 px-6 xl:px-12"
-        style={{ backgroundColor: "#FFFFFF", borderBottom: "1px solid #E8E8EC" }}
+        className="fixed left-0 right-0 top-0 z-50 hidden h-[80px] w-full items-center px-8 md:flex"
+        style={{ backgroundColor: "var(--shop-bg)", borderBottom: "1px solid var(--shop-border)" }}
       >
-        {/* Logo */}
-        <Link href="/shop" className="flex-shrink-0">
-          <Image
-            src="/Logo-01.png"
-            alt="Bioshield"
-            width={180}
-            height={54}
-            priority
-            className="h-[120px] w-auto object-contain"
-            style={{ mixBlendMode: "multiply" }}
-          />
-        </Link>
-
-        {/* Divider */}
-        <div className="w-px h-9 bg-gray-200 flex-shrink-0" />
-
-        {/* Location */}
-        <button type="button" className="flex items-start gap-2.5 flex-shrink-0 cursor-pointer bg-transparent border-none outline-none group">
-          <img src="/icons/location.svg" alt="" style={{ width: 32, height: 32, marginTop: "2px" }} className="flex-shrink-0" />
-          <div className="text-left">
-            <p className="text-[11px] text-gray-400 leading-none mb-[3px] tracking-wide">Deliver to</p>
-            <div className="flex items-center gap-0.5">
-              <p className="text-[13.5px] font-bold text-gray-800 leading-none tracking-tight group-hover:text-brand-purple transition-colors">
-                {loggedInUser?.city || "Chennai"}
-              </p>
-              <ChevronDown size={12} className="text-gray-500 mt-[1px]" strokeWidth={2.5} />
-            </div>
-          </div>
-        </button>
-
-        {/* Divider */}
-        <div className="w-px h-9 bg-gray-200 flex-shrink-0" />
-
-        {/* Search — fixed medium width */}
-        <div style={{ width: "420px" }}>
-          <SearchBar />
+        <div className="flex min-w-0 flex-1 items-center gap-10">
+          <Link href="/shop" className="flex-shrink-0">
+            <Image
+              src="/Logo-01.png"
+              alt="Bioshield"
+              width={150}
+              height={45}
+              priority
+              className="h-auto w-[180px] object-contain"
+              style={{ mixBlendMode: "multiply" }}
+            />
+          </Link>
+          <LocationButton city={loggedInUser?.city} />
         </div>
 
-        {/* Right actions pushed to far right */}
-        <div className="flex items-center gap-10 flex-shrink-0 ml-auto">
-
-          {/* Login / Profile */}
-          <button type="button" onClick={handleProfileClick} className="flex items-center gap-2.5 group">
-            <div className="relative flex-shrink-0">
-              <img src="/icons/user.svg" alt="" style={{ width: 26, height: 26 }} />
-              {!loggedInUser && <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full" style={{ backgroundColor: "#EF4444" }} />}
-            </div>
-            <div className="text-left">
-              <p className="text-[11px] text-gray-400 leading-none mb-[3px] tracking-wide">Hello,</p>
-              <p className="text-[13px] font-bold text-gray-800 leading-none tracking-tight group-hover:text-brand-purple transition-colors">
-                {loggedInUser ? loggedInUser.name : (isLoggedIn ? userName : "Log in")}
-              </p>
-            </div>
-          </button>
-
-          {/* Wallet — only shown once logged in */}
-          {loggedInUser && (
-            <Link href="/shop/account/wallet" className="flex items-center gap-2 group">
-              <img src="/icons/wallet.svg" alt="" style={{ width: 22, height: 22 }} />
-              <span className="text-[13px] font-bold text-gray-800 tracking-tight group-hover:text-brand-purple transition-colors">
-                ₹{(loggedInUser.walletBalance ?? 0).toFixed(0)}
-              </span>
-            </Link>
-          )}
-
-          {/* Cart */}
-          <Link href="/shop/cart" className="flex items-center gap-2.5 group">
-            <div className="relative flex-shrink-0">
-              <img src="/icons/cart.svg" alt="" style={{ width: 42, height: 42 }} />
-              {cartCount > 0 && (
-                <span
-                  className="absolute -top-1.5 -right-1.5 min-w-[17px] h-[17px] rounded-full text-white flex items-center justify-center text-[9px] font-bold px-0.5"
-                  style={{ backgroundColor: "#EF4444" }}
-                >
-                  {cartCount > 9 ? "9+" : cartCount}
-                </span>
-              )}
-            </div>
-            <p className="text-[13px] font-bold text-gray-800 tracking-tight group-hover:text-brand-purple transition-colors">
-              Cart
-            </p>
+        <div className="flex flex-[1.75] items-center justify-center gap-7 px-8">
+          <Link href="/shop" aria-label="Home" className="group">
+            <HoverIcon src="/icons/home.svg" alt="Home" size={22} />
           </Link>
 
+          <div className="w-full min-w-[360px] max-w-[560px]">
+            <CategorySearchBar />
+          </div>
+        </div>
+
+        <div className="flex flex-1 items-center justify-end gap-7">
+          <button
+            type="button"
+            onClick={handleProfileClick}
+            aria-label="Account"
+            className="group flex items-center gap-2 outline-none"
+          >
+            <HoverIcon src="/icons/user.svg" alt="Account" size={24} />
+            <span className="whitespace-nowrap text-[14px]" style={{ color: "var(--shop-text-primary)" }}>
+              Hello, <span className="font-semibold">{loggedInUser ? loggedInUser.name : "Log in"}</span>
+            </span>
+          </button>
+
+          <Link href="/shop/cart" className="group relative" aria-label="Cart">
+            <HoverIcon src="/icons/cart.svg" alt="Cart" size={26} />
+            <NotificationDot show={cartCount > 0} />
+          </Link>
+
+          <Link href="/shop/account/liked" className="group relative" aria-label="Liked products">
+            <HoverIcon src="/icons/heart.svg" alt="Liked products" size={24} />
+            <NotificationDot show={likedIds.size > 0} />
+          </Link>
         </div>
       </header>
 
-      {/* ════════ MOBILE ════════ */}
+      {/* ── Mobile (same layout/order as before, updated icon styling) ── */}
       <div
-        className="fixed top-0 left-0 right-0 z-50 md:hidden"
-        style={{ backgroundColor: "#FFFFFF", borderBottom: "1px solid #E8E8EC" }}
+        className="fixed left-0 right-0 top-0 z-50 md:hidden"
+        style={{ backgroundColor: "var(--shop-bg)", borderBottom: "1px solid var(--shop-border)" }}
       >
-        {/* Row 1: Logo + Profile + Cart — hides on scroll, except on account pages where it stays put */}
-        <AnimatePresence initial={false}>
-          {(!scrolled || isAccountPage) && (
-            <motion.div
-              key="logo-row"
-              initial={{ height: 0,      opacity: 0 }}
-              animate={{ height: "56px", opacity: 1 }}
-              exit={{    height: 0,      opacity: 0 }}
-              transition={{ duration: 0.22, ease: "easeInOut" }}
-              className="overflow-hidden"
-            >
-              <div className="flex items-center justify-between px-4 h-[56px]">
-                <Link href="/shop">
-                  <Image
-                    src="/Logo-01.png"
-                    alt="Bioshield"
-                    width={140}
-                    height={42}
-                    priority
-                    className="h-[120px] w-auto object-contain"
-                    style={{ mixBlendMode: "multiply" }}
-                  />
-                </Link>
-                <div className="flex items-center gap-6">
-                  <button type="button" onClick={handleProfileClick} className="relative">
-                    <img src="/icons/user.svg" alt="" style={{ width: 22, height: 22 }} />
-                    {!loggedInUser && <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full" style={{ backgroundColor: "#EF4444" }} />}
-                  </button>
-                  {loggedInUser && (
-                    <Link href="/shop/account/wallet" className="flex items-center gap-1">
-                      <img src="/icons/wallet.svg" alt="" style={{ width: 20, height: 20 }} />
-                      <span className="text-[12px] font-bold text-gray-800">₹{(loggedInUser.walletBalance ?? 0).toFixed(0)}</span>
-                    </Link>
-                  )}
-                  <Link href="/shop/cart" className="relative">
-                    <img src="/icons/cart.svg" alt="" style={{ width: 34, height: 34 }} />
-                    {cartCount > 0 && (
-                      <span
-                        className="absolute -top-1.5 -right-1.5 min-w-[16px] h-[16px] rounded-full text-white flex items-center justify-center text-[9px] font-bold"
-                        style={{ backgroundColor: "#EF4444" }}
-                      >
-                        {cartCount}
-                      </span>
-                    )}
-                  </Link>
-                </div>
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+        <div className="flex h-[56px] items-center justify-between px-4">
+          <Link href="/shop">
+            <Image
+              src="/Logo-01.png"
+              alt="Bioshield"
+              width={120}
+              height={36}
+              priority
+              className="h-[100px] w-auto object-contain"
+              style={{ mixBlendMode: "multiply" }}
+            />
+          </Link>
 
-        {/* Row 2: Location strip — hides on scroll */}
-        <AnimatePresence initial={false}>
-          {!scrolled && (
-            <motion.div
-              key="location-row"
-              initial={{ height: 0,      opacity: 0 }}
-              animate={{ height: "36px", opacity: 1 }}
-              exit={{    height: 0,      opacity: 0 }}
-              transition={{ duration: 0.2, ease: "easeInOut" }}
-              className="overflow-hidden"
-              style={{ backgroundColor: "#F7F7F9", borderTop: "1px solid #F0F0F5" }}
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={handleProfileClick}
+              aria-label="Account"
+              className="group flex items-center gap-1.5 outline-none"
             >
-              <div className="flex items-center px-4 h-[36px]">
-                <LocationStrip city={loggedInUser?.city} />
+              <HoverIcon src="/icons/user.svg" alt="Account" size={20} />
+              <div className="text-left leading-tight">
+                <p className="text-[9.5px] font-medium" style={{ color: "var(--shop-text-secondary)" }}>
+                  Hello
+                </p>
+                <p className="text-[12px] font-semibold" style={{ color: "var(--shop-text-primary)" }}>
+                  {loggedInUser ? loggedInUser.name : "Log in"}
+                </p>
               </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
+            </button>
 
-        {/* Row 3: Search bar — only on the main shop and product pages, hidden on account pages */}
+            <Link href="/shop/cart" className="group relative" aria-label="Cart">
+              <HoverIcon src="/icons/cart.svg" alt="Cart" size={24} />
+              <NotificationDot show={cartCount > 0} />
+            </Link>
+          </div>
+        </div>
+
         {!isAccountPage && (
           <div
-            className="flex items-center gap-3 px-4 py-2.5"
-            style={{ backgroundColor: scrolled ? "#FFFFFF" : "#F7F7F7" }}
+            className="flex h-[34px] items-center justify-between px-4"
+            style={{ borderTop: "1px solid var(--shop-border)" }}
           >
-            <div className="flex-1">
-              <SearchBar compact={scrolled} showButton={false} />
-            </div>
+            <LocationButton city={loggedInUser?.city} compact />
 
-            {/* Show icons next to search when scrolled */}
-            {scrolled && (
-              <div className="flex items-center gap-5 flex-shrink-0">
-                <button type="button" onClick={handleProfileClick} className="relative">
-                  <img src="/icons/user.svg" alt="" style={{ width: 21, height: 21 }} />
-                  {!loggedInUser && <span className="absolute -top-0.5 -right-0.5 w-2 h-2 rounded-full" style={{ backgroundColor: "#EF4444" }} />}
-                </button>
-                {loggedInUser && (
-                  <Link href="/shop/account/wallet" className="flex items-center gap-1">
-                    <img src="/icons/wallet.svg" alt="" style={{ width: 19, height: 19 }} />
-                    <span className="text-[11.5px] font-bold text-gray-800">₹{(loggedInUser.walletBalance ?? 0).toFixed(0)}</span>
-                  </Link>
-                )}
-                <Link href="/shop/cart" className="relative">
-                  <img src="/icons/cart.svg" alt="" style={{ width: 34, height: 34 }} />
-                  {cartCount > 0 && (
-                    <span
-                      className="absolute -top-1.5 -right-1.5 min-w-[15px] h-[15px] rounded-full text-white flex items-center justify-center text-[8px] font-bold"
-                      style={{ backgroundColor: "#EF4444" }}
-                    >
-                      {cartCount}
-                    </span>
-                  )}
-                </Link>
-              </div>
-            )}
+            <Link href="/shop/account/liked" className="group relative" aria-label="Liked products">
+              <HoverIcon src="/icons/heart.svg" alt="Liked products" size={20} />
+              <NotificationDot show={likedIds.size > 0} />
+            </Link>
+          </div>
+        )}
+
+        {!isAccountPage && (
+          <div className="px-4 py-2.5">
+            <CategorySearchBar compact />
           </div>
         )}
       </div>
 
-      <AuthModal
-        open={authOpen}
-        onClose={() => setAuthOpen(false)}
-        onSuccess={(user) => setLoggedInUser(user)}
-      />
+      <AuthModal open={authOpen} onClose={() => setAuthOpen(false)} onSuccess={(user) => setLoggedInUser(user)} />
     </>
   );
 }

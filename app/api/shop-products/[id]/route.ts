@@ -25,14 +25,14 @@ export async function PATCH(
     const body    = await req.json();
 
     const {
-      name, badge, badgeColor, mainImage, images,
+      name, badge, badgeColor, cardColor, mainImage, images,
       categoryId, sectionId, sectionOrder, doctorOffer,
       productDetailSections, manufacturerDetails,
       unit, availableUnits, stock,
       benefits, productDescription, offers, frequentlyBoughtIds,
       customerMrp, customerOfferPercent,
       doctorMrp, doctorPtrPrice, taxPercent,
-      productType, weightInGrams,
+      productType, weightInGrams, weightUnit,
     } = body;
 
     const updated = await prisma.shopProduct.update({
@@ -41,6 +41,7 @@ export async function PATCH(
         name,
         badge:               badge !== undefined ? badge : undefined,
         badgeColor:          badgeColor !== undefined ? badgeColor : undefined,
+        cardColor:           cardColor !== undefined ? cardColor : undefined,
         mainImage:           mainImage !== undefined ? mainImage : undefined,
         images:              images !== undefined ? images : undefined,
         categoryId:          categoryId !== undefined ? categoryId : undefined,
@@ -78,6 +79,7 @@ export async function PATCH(
         weightInGrams:        weightInGrams !== undefined
                                  ? (weightInGrams !== null && weightInGrams !== "" ? Number(weightInGrams) : null)
                                  : undefined,
+        weightUnit:           weightUnit !== undefined ? weightUnit : undefined,
       },
     });
     return NextResponse.json({ product: updated });

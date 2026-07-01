@@ -52,6 +52,28 @@
   --color-brand-off-white:     #F7F7F7;   /* Off-white sections */
   --color-brand-light-gray:    #F4F6F8;   /* Light gray sections */
 
+  /* ════════════════════════════════════════════════════════════════
+     SHOP PALETTE — /shop/* only (navbar, cart, account, product pages)
+     Change these values, the whole shop section updates automatically.
+     Use as Tailwind classes:
+         bg-shop-primary-green, text-shop-dark-green, border-shop-border
+     ════════════════════════════════════════════════════════════════ */
+  --color-shop-primary-green:  #17653A;
+  --color-shop-dark-green:     #0F5132;
+  --color-shop-light-green:    #EAF8F0;
+  --color-shop-accent-amber:   #F59E0B;
+  --color-shop-light-amber:    #FEF3C7;
+  --color-shop-logo-purple:    #6D28D9;
+  --color-shop-light-purple:   #F3E8FF;
+  --color-shop-error:          #EF4444;
+  --color-shop-success:        #22C55E;
+  --color-shop-info:           #2563EB;
+  --color-shop-bg:             #FFFFFF;
+  --color-shop-section-bg:     #F8FAF8;
+  --color-shop-border:         #E5E7EB;
+  --color-shop-text-primary:   #111827;
+  --color-shop-text-secondary: #6B7280;
+
   /* ── Font ── */
   --font-sans: var(--font-dm-sans), sans-serif;
 
@@ -107,6 +129,25 @@
     --nav-cta-bg:              var(--color-brand-green-dark);
     --nav-cta-hover:           var(--color-brand-green-deep);
     --nav-mobile-accent:       var(--color-brand-purple);
+
+    /* ── Shop palette — used throughout /shop/* only (navbar, cart,
+         account, product pages). The marketing site above keeps its own
+         brand tokens untouched. ── */
+    --shop-primary-green:   #17653A;
+    --shop-dark-green:      #0F5132;
+    --shop-light-green:     #EAF8F0;
+    --shop-accent-amber:    #F59E0B;
+    --shop-light-amber:     #FEF3C7;
+    --shop-logo-purple:     #6D28D9;
+    --shop-light-purple:    #F3E8FF;
+    --shop-error:           #EF4444;
+    --shop-success:         #22C55E;
+    --shop-info:            #2563EB;
+    --shop-bg:              #FFFFFF;
+    --shop-section-bg:      #F8FAF8;
+    --shop-border:          #E5E7EB;
+    --shop-text-primary:    #111827;
+    --shop-text-secondary:  #6B7280;
   }
 
   * {

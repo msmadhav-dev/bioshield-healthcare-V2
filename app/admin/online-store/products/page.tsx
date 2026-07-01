@@ -7,8 +7,10 @@ import { Trash2, Loader2, RefreshCw } from "lucide-react";
 type Product = {
   id: string; name: string; slug: string;
   customerMrp: number; customerOfferPercent?: number | null;
-  badge?: string | null; badgeColor: string;
+  badge?: string | null; badgeColor: string; cardColor?: string;
   mainImage: string; sectionId?: string | null;
+  unit?: string | null;
+  categoryName?: string | null;
   createdAt: string;
 };
 
@@ -87,39 +89,56 @@ export default function ViewShopProducts() {
 
       {!loading && products.length > 0 && (
         <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          {products.map((product) => (
-            <div key={product.id} className="bg-white overflow-hidden rounded-xl"
-              style={{ border: "1px solid #E5E7EB" }}>
-              <div className="relative aspect-square bg-gray-50 p-3">
-                <img src={product.mainImage} alt={product.name}
-                  style={{ width: "100%", height: "100%", objectFit: "contain", mixBlendMode: "multiply" }} />
-                {product.badge && (
-                  <span className="absolute top-2 left-2 text-[9px] font-bold px-1.5 py-0.5 rounded-full text-white"
-                    style={{ backgroundColor: product.badgeColor === "blue" ? "#2563EB" : product.badgeColor === "pink" ? "#DB2777" : "#DC2626" }}>
-                    {product.badge}
-                  </span>
-                )}
-              </div>
-              <div className="p-3">
-                <p className="text-[12px] font-semibold text-gray-800 truncate">{product.name}</p>
-                <p className="text-[11px] text-gray-500 mt-0.5">
-                  {product.customerOfferPercent
-                    ? <>₹{(product.customerMrp * (1 - product.customerOfferPercent / 100)).toFixed(0)} <span className="line-through ml-1 text-gray-400">₹{product.customerMrp}</span></>
-                    : <>₹{product.customerMrp}</>}
-                </p>
-                <div className="flex items-center justify-between mt-2">
-                  <Link href={`/admin/online-store/products/edit/${product.id}`}
-                    className="text-[10px] font-semibold text-brand-purple-deep">
-                    Edit
-                  </Link>
-                  <button onClick={() => handleDelete(product.id)} disabled={deleting === product.id}
-                    className="p-1 text-red-400 hover:text-red-600">
-                    {deleting === product.id ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
-                  </button>
+          {products.map((product) => {
+            const imageBg = product.cardColor === "orange" ? "#FFF1E2" : "#EBF0FE";
+
+            return (
+              <div key={product.id} className="bg-white overflow-hidden" style={{ border: "1px solid #E5E7EB", borderRadius: "16px" }}>
+                <div className="p-2">
+                  <div className="relative p-3" style={{ backgroundColor: imageBg, borderRadius: "12px", aspectRatio: "4/3" }}>
+                    <img src={product.mainImage} alt={product.name}
+                      style={{ width: "100%", height: "100%", objectFit: "contain" }} />
+                    {product.badge && (
+                      <span
+                        className="absolute top-2 left-2 text-[9px] font-bold px-1.5 py-0.5 rounded-full text-white uppercase"
+                        style={{ backgroundColor: product.badgeColor === "green" ? "var(--shop-success)" : "var(--shop-accent-amber)" }}
+                      >
+                        {product.badge}
+                      </span>
+                    )}
+                  </div>
+                </div>
+                <div className="px-3 pb-3">
+                  <p className="text-[12px] font-semibold text-gray-800 truncate">{product.name}</p>
+                  {product.categoryName && (
+                    <p className="text-[10.5px] text-gray-500 truncate">{product.categoryName}</p>
+                  )}
+                  <div className="flex items-center justify-between gap-2 mt-1">
+                    <p className="text-[11px] text-gray-500">
+                      {product.customerOfferPercent
+                        ? <>₹{(product.customerMrp * (1 - product.customerOfferPercent / 100)).toFixed(0)} <span className="line-through ml-1" style={{ color: "var(--shop-error)" }}>₹{product.customerMrp}</span></>
+                        : <>₹{product.customerMrp}</>}
+                    </p>
+                    {product.unit && (
+                      <span className="flex-shrink-0 text-[9px] font-semibold text-gray-600 rounded px-1.5 py-0.5" style={{ border: "1px solid var(--shop-border)" }}>
+                        {product.unit}
+                      </span>
+                    )}
+                  </div>
+                  <div className="flex items-center justify-between mt-2">
+                    <Link href={`/admin/online-store/products/edit/${product.id}`}
+                      className="text-[10px] font-semibold text-brand-purple-deep">
+                      Edit
+                    </Link>
+                    <button onClick={() => handleDelete(product.id)} disabled={deleting === product.id}
+                      className="p-1 text-red-400 hover:text-red-600">
+                      {deleting === product.id ? <Loader2 size={12} className="animate-spin" /> : <Trash2 size={12} />}
+                    </button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

@@ -5,6 +5,17 @@ function slugify(name: string) {
   return name.toLowerCase().replace(/[^a-z0-9\s-]/g, "").replace(/\s+/g, "-").replace(/-+/g, "-").trim();
 }
 
+// categoryId is a loose string field (no Prisma relation defined on it), so
+// we resolve names with a small lookup map instead of an `include`.
+async function withCategoryNames<T extends { categoryId?: string | null }>(items: T[]) {
+  const ids = Array.from(new Set(items.map((i) => i.categoryId).filter(Boolean))) as string[];
+  if (ids.length === 0) return items.map((i) => ({ ...i, categoryName: null as string | null }));
+
+  const categories = await prisma.category.findMany({ where: { id: { in: ids } } });
+  const nameById = new Map(categories.map((c) => [c.id, c.name]));
+  return items.map((i) => ({ ...i, categoryName: i.categoryId ? nameById.get(i.categoryId) || null : null }));
+}
+
 export async function GET(req: NextRequest) {
   try {
     const { searchParams } = new URL(req.url);
@@ -15,13 +26,14 @@ export async function GET(req: NextRequest) {
     if (slug) {
       const product = await prisma.shopProduct.findUnique({ where: { slug } });
       if (!product) return NextResponse.json({ error: "Not found" }, { status: 404 });
-      return NextResponse.json({ product });
+      const [withName] = await withCategoryNames([product]);
+      return NextResponse.json({ product: withName });
     }
 
     if (ids) {
       const idList = ids.split(",").filter(Boolean);
       const products = await prisma.shopProduct.findMany({ where: { id: { in: idList } } });
-      return NextResponse.json({ products });
+      return NextResponse.json({ products: await withCategoryNames(products) });
     }
 
     const where = sectionId ? { sectionId } : {};
@@ -29,7 +41,7 @@ export async function GET(req: NextRequest) {
       where,
       orderBy: [{ sectionOrder: "asc" }, { createdAt: "desc" }],
     });
-    return NextResponse.json({ products });
+    return NextResponse.json({ products: await withCategoryNames(products) });
   } catch (err) {
     console.error(err);
     return NextResponse.json({ error: "Failed", products: [] }, { status: 500 });
@@ -40,7 +52,7 @@ export async function POST(req: NextRequest) {
   try {
     const body = await req.json();
     const {
-      name, badge, badgeColor, mainImage, images,
+      name, badge, badgeColor, cardColor, mainImage, images,
       categoryId, sectionId, sectionOrder, doctorOffer,
       productDetailSections, manufacturerDetails,
       unit, availableUnits, stock,
@@ -49,7 +61,7 @@ export async function POST(req: NextRequest) {
       customerMrp, customerOfferPercent,
       doctorMrp, doctorPtrPrice, taxPercent,
       // Delivery weight calc
-      productType, weightInGrams,
+      productType, weightInGrams, weightUnit,
     } = body;
 
     if (!name || !customerMrp || !mainImage) {
@@ -65,6 +77,7 @@ export async function POST(req: NextRequest) {
         name, slug,
         badge:                badge || null,
         badgeColor:           badgeColor || "red",
+        cardColor:            cardColor || "purple",
         mainImage,
         images:               images || [],
         categoryId:           categoryId || null,
@@ -92,6 +105,7 @@ export async function POST(req: NextRequest) {
 
         productType:          productType || "OTHER",
         weightInGrams:        weightInGrams !== undefined && weightInGrams !== null && weightInGrams !== "" ? Number(weightInGrams) : null,
+        weightUnit:           weightUnit || "G",
       },
     });
     return NextResponse.json({ product });

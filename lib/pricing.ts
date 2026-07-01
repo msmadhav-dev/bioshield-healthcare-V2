@@ -1,6 +1,55 @@
 // Shared pricing/delivery math. Keeping this in one place so the cart API
 // and the cart page UI can never drift out of sync with each other.
 
+// Converts an admin-entered weight value to canonical grams. Liters need
+// converting (1L = 1000g equivalent); grams and ml are already 1:1 for our
+// purposes, so they pass through unchanged.
+export function convertToGrams(value: number, unit: "G" | "ML" | "L"): number {
+  if (unit === "L") return value * 1000;
+  return value;
+}
+
+// Reverse of the above — used when re-loading a product into the edit form,
+// so the admin sees the value back in whichever unit they originally entered.
+export function gramsToDisplayValue(grams: number, unit: "G" | "ML" | "L"): number {
+  if (unit === "L") return grams / 1000;
+  return grams;
+}
+
+export type DeliveryTimingSettings = {
+  deliveryCutoffHour:  number; // 24h format, e.g. 13 = 1pm
+  deliveryFastDaysMin: number;
+  deliveryFastDaysMax: number;
+  deliverySlowDaysMin: number;
+  deliverySlowDaysMax: number;
+};
+
+// Orders placed before the cutoff hour get the faster estimate; after it,
+// the slower one. Returns both the day range and a ready-to-display string.
+export function getDeliveryEstimate(settings: DeliveryTimingSettings, now: Date = new Date()) {
+  const beforeCutoff = now.getHours() < settings.deliveryCutoffHour;
+  const min = beforeCutoff ? settings.deliveryFastDaysMin : settings.deliverySlowDaysMin;
+  const max = beforeCutoff ? settings.deliveryFastDaysMax : settings.deliverySlowDaysMax;
+  return {
+    minDays: min,
+    maxDays: max,
+    text: min === max ? `${min} day${min > 1 ? "s" : ""}` : `${min}-${max} days`,
+  };
+}
+
+// Hardcoded for now — referral/cashback system will replace this later.
+// Coupon gives a flat % off the subtotal that's already been MRP-discounted.
+export const VALID_COUPONS: Record<string, { percent: number }> = {
+  BS0708CARE: { percent: 5 },
+};
+
+export function getCouponDiscount(code: string | null | undefined, discountedSubtotal: number): number {
+  if (!code) return 0;
+  const coupon = VALID_COUPONS[code.toUpperCase()];
+  if (!coupon) return 0;
+  return discountedSubtotal * (coupon.percent / 100);
+}
+
 export type Role = "CUSTOMER" | "DOCTOR";
 
 export type PricedProduct = {

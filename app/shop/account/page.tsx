@@ -74,7 +74,7 @@ export default function MyProfilePage() {
       <h1 className="text-[19px] md:text-[26px] font-extrabold mb-4 md:mb-6" style={{ color: GREEN }}>My Profile</h1>
 
       {/* Profile card */}
-      <div className="flex items-center gap-4 md:gap-6 p-5 md:p-8 rounded-3xl mb-4 md:mb-6 w-full md:w-[90%]" style={{ backgroundColor: "#FFFFFF", border: "1px solid #EFEFEF" }}>
+      <div className="flex items-center gap-4 md:gap-6 p-5 md:p-8 rounded-xl mb-4 md:mb-6 w-full md:w-[90%]" style={{ backgroundColor: "#FFFFFF", border: "1px solid #EFEFEF" }}>
         <div
           className="w-16 h-16 md:w-28 md:h-28 rounded-full flex items-center justify-center flex-shrink-0 text-[26px] md:text-[40px] font-extrabold"
           style={{ backgroundColor: "#D4AF37", color: "#000000" }}
@@ -89,7 +89,7 @@ export default function MyProfilePage() {
       </div>
 
       {/* Personal Information */}
-      <div className="p-5 md:p-8 rounded-3xl mb-4 md:mb-6 w-full md:w-[90%]" style={{ backgroundColor: "#FFFFFF", border: "1px solid #EFEFEF" }}>
+      <div className="p-5 md:p-8 rounded-xl mb-4 md:mb-6 w-full md:w-[90%]" style={{ backgroundColor: "#FFFFFF", border: "1px solid #EFEFEF" }}>
         <div className="flex items-center justify-between mb-4 md:mb-6">
           <h2 className="text-[15px] md:text-[19px] font-extrabold" style={{ color: GREEN }}>Personal Information</h2>
           <button
@@ -139,7 +139,7 @@ export default function MyProfilePage() {
 
       {/* Doctor Verification — only for doctor accounts */}
       {user.role === "DOCTOR" && (
-        <div className="p-5 md:p-8 rounded-3xl mb-4 md:mb-6 w-full md:w-[90%]" style={{ backgroundColor: "#FFFFFF", border: "1px solid #EFEFEF" }}>
+        <div className="p-5 md:p-8 rounded-xl mb-4 md:mb-6 w-full md:w-[90%]" style={{ backgroundColor: "#FFFFFF", border: "1px solid #EFEFEF" }}>
           <h2 className="text-[15px] md:text-[19px] font-extrabold mb-4 md:mb-6" style={{ color: GREEN }}>Doctor Verification</h2>
 
           {loadingVerification ? (
@@ -200,7 +200,7 @@ export default function MyProfilePage() {
       )}
 
       {/* Addresses */}
-      <div className="p-5 md:p-8 rounded-3xl w-full md:w-[90%]" style={{ backgroundColor: "#FFFFFF", border: "1px solid #EFEFEF" }}>
+      <div className="p-5 md:p-8 rounded-xl w-full md:w-[90%]" style={{ backgroundColor: "#FFFFFF", border: "1px solid #EFEFEF" }}>
         <div className="flex items-center justify-between mb-4 md:mb-6">
           <h2 className="text-[15px] md:text-[19px] font-extrabold" style={{ color: GREEN }}>My Addresses</h2>
           <span className="text-[11.5px] md:text-[13px] text-gray-400">{addresses.length}/4 saved</span>
@@ -211,7 +211,7 @@ export default function MyProfilePage() {
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 gap-3 md:gap-4 mb-4">
             {addresses.map((addr) => (
-              <div key={addr.id} className="p-4 md:p-5 rounded-2xl relative" style={{ border: "1px solid #EFEFEF", backgroundColor: "#FAFAFA" }}>
+              <div key={addr.id} className="p-4 md:p-5 rounded-lg relative" style={{ border: "1px solid #EFEFEF", backgroundColor: "#FAFAFA" }}>
                 <span className="text-[10.5px] md:text-[11px] font-bold px-2.5 py-1 rounded-md mb-2 inline-block" style={{ backgroundColor: "#FEF3C7", color: "#92400E" }}>
                   {addr.label}
                 </span>
@@ -231,7 +231,7 @@ export default function MyProfilePage() {
             {addresses.length < 4 && (
               <button
                 type="button" onClick={() => setAddOpen(true)}
-                className="flex items-center justify-center gap-2 p-4 md:p-5 rounded-2xl text-[13px] md:text-[14.5px] font-bold text-black"
+                className="flex items-center justify-center gap-2 p-4 md:p-5 rounded-lg text-[13px] md:text-[14.5px] font-bold text-black"
                 style={{ border: "1.5px dashed #FFC107", backgroundColor: "transparent", minHeight: "84px" }}
               >
                 <Plus size={16} /> Add Address

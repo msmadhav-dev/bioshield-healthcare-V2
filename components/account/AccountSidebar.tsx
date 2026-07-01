@@ -4,8 +4,6 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
-const YELLOW_GRADIENT = "linear-gradient(135deg, #FFD84D 0%, #FFC107 100%)";
-
 const NAV_ITEMS = [
   { href: "/shop/account",               label: "Dashboard",          icon: "/icons/dashboard.svg" },
   { href: "/shop/cart",                  label: "Cart",               icon: "/icons/cart.svg" },
@@ -35,7 +33,7 @@ export default function AccountSidebar({
             key={item.href}
             href={item.href}
             onClick={() => setMobileOpen(false)}
-            className="flex items-center gap-3 px-4 py-3 rounded-2xl transition-colors"
+            className="flex items-center gap-3 px-4 py-3 rounded-xl transition-colors"
             style={{
               backgroundColor: active ? "#F0FDF4" : "transparent",
               color:           active ? "#14532D" : "#374151",
@@ -49,23 +47,26 @@ export default function AccountSidebar({
     </nav>
   );
 
+  // Styled identically to the nav items above — same padding, icon size,
+  // font weight, plain (no button background). Just a subtle red tint on
+  // the text/icon so it's still recognizable as a distinct action.
   const LogoutButton = ({ onClick }: { onClick: () => void }) => (
     <div className="px-3 mt-2 pb-4">
       <button
         type="button"
         onClick={onClick}
-        className="flex items-center justify-center gap-2.5 px-4 py-3 rounded-2xl w-full text-[14px] font-bold"
-        style={{ background: YELLOW_GRADIENT, color: "#1A1A1A" }}
+        className="flex items-center gap-3 px-4 py-3 rounded-xl w-full text-left transition-colors"
+        style={{ color: "#DC2626" }}
       >
-        <img src="/icons/logout.svg" alt="" style={{ width: 18, height: 18 }} className="flex-shrink-0" />
-        Logout
+        <img src="/icons/logout.svg" alt="" style={{ width: 20, height: 20 }} className="flex-shrink-0" />
+        <span className="text-[14px] font-semibold whitespace-nowrap">Logout</span>
       </button>
     </div>
   );
 
   return (
     <>
-      {/* ── Desktop: always expanded, rounded like the content cards, and
+      {/* ── Desktop: always expanded, minimal rounded corners, and
            truly fixed in the viewport — not sticky. Sticky depends on every
            single ancestor having correct overflow behavior to compute the
            right "nearest scrolling ancestor", which is fragile (that's
@@ -83,7 +84,7 @@ export default function AccountSidebar({
           maxHeight:       "calc(100vh - 96px)",
           overflowY:       "auto",
           backgroundColor: "#FFFFFF",
-          borderRadius:    "24px",
+          borderRadius:    "12px",
           border:          "1px solid #EFEFEF",
         }}
       >
@@ -98,7 +99,7 @@ export default function AccountSidebar({
       <button
         type="button"
         onClick={() => setMobileOpen(true)}
-        className="md:hidden fixed top-[100px] left-3 z-40 w-10 h-10 flex items-center justify-center rounded-xl"
+        className="md:hidden fixed top-[100px] left-3 z-40 w-10 h-10 flex items-center justify-center rounded-lg"
         style={{ backgroundColor: "#FFFFFF", border: "1px solid #EFEFEF", boxShadow: "0 2px 8px rgba(0,0,0,0.06)" }}
       >
         <img src="/icons/hamburger.svg" alt="" style={{ width: 18, height: 18 }} />

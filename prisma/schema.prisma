@@ -20,25 +20,41 @@ model Product {
 }
 
 model Category {
-  id        String   @id @default(cuid())
-  name      String
-  image     String?
-  createdAt DateTime @default(now())
+  id           String   @id @default(cuid())
+  name         String
+  image        String?
+  gradientFrom String?
+  gradientTo   String?
+  imageSize    Int      @default(68)
+  createdAt    DateTime @default(now())
 
   @@map("categories")
 }
-
 model Advertisement {
-  id          String   @id @default(cuid())
-  badge       String?
-  topCaption  String?
-  heading     String
-  productName String
-  image       String?
-  createdAt   DateTime @default(now())
-  imageSize   Int      @default(100)
-  slot        Int      @default(1)
-  subText     String?
+  id            String   @id @default(cuid())
+  badge         String?
+  topCaption    String?
+  heading       String
+  productName   String
+  linkUrl       String?
+  image         String?
+  createdAt     DateTime @default(now())
+  imageSize     Int      @default(100) // desktop image size %
+  imageSizeMobile     Int @default(100)
+  titleSizeDesktop    Int @default(100)
+  titleSizeMobile     Int @default(100)
+  captionSizeDesktop  Int @default(100)
+  captionSizeMobile   Int @default(100)
+  buttonSizeDesktop   Int @default(100)
+  buttonSizeMobile    Int @default(100)
+  imageOffsetX  Int      @default(0) // percentage point offset, drag-positioned in admin
+  imageOffsetY  Int      @default(0)
+  imageOffsetXMobile Int @default(0) // separate drag position for the mobile preview
+  imageOffsetYMobile Int @default(0)
+  slot          Int      @default(1)
+  subText       String?
+  theme         String   @default("orange")
+  buttonText    String   @default("Buy now")
 
   @@map("advertisements")
 }
@@ -49,6 +65,7 @@ model ShopProduct {
   slug                String   @unique
   badge               String?
   badgeColor          String   @default("red")
+  cardColor           String   @default("purple") // "purple" | "orange" — listing-card image panel background
   mainImage           String
   images              String[]
   categoryId          String?
@@ -75,7 +92,8 @@ model ShopProduct {
 
   // ── Delivery weight calc ──
   productType   String @default("OTHER") // "TABLET" | "GEL" | "SYRUP" | "OTHER" — TABLET is excluded from weight calc
-  weightInGrams Float? // grams (liquids entered as 1ml ≈ 1g equivalent)
+  weightInGrams Float? // always stored canonically in grams
+  weightUnit    String @default("G") // "G" | "ML" | "L" — the unit the admin originally entered, kept for display when re-editing
 
   cartItems CartItem[]
   likedBy   LikedProduct[]
@@ -102,6 +120,11 @@ model SiteSettings {
   deliveryChargePerKg           Float    @default(30)
   customerFreeDeliveryThreshold Float    @default(500)
   doctorFreeDeliveryThreshold   Float    @default(1000)
+  deliveryCutoffHour            Int      @default(13) // 24h format — 13 = 1pm
+  deliveryFastDaysMin           Int      @default(1)  // ordered before cutoff
+  deliveryFastDaysMax           Int      @default(2)
+  deliverySlowDaysMin           Int      @default(2)  // ordered after cutoff
+  deliverySlowDaysMax           Int      @default(3)
   updatedAt                     DateTime @updatedAt
 
   @@map("site_settings")
@@ -136,6 +159,7 @@ model User {
   gender        String   // "MALE" | "FEMALE" | "OTHER"
   age           Int
   walletBalance Float    @default(0)
+  appliedCouponCode String?
   createdAt     DateTime @default(now())
 
   addresses Address[]
@@ -183,6 +207,7 @@ model Address {
   pincode   String
   district  String
   state     String
+  isDefault Boolean  @default(false)
   createdAt DateTime @default(now())
 
   @@map("addresses")

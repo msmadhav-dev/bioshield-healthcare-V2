@@ -5,6 +5,11 @@ const DEFAULTS = {
   deliveryChargePerKg:           30,
   customerFreeDeliveryThreshold: 500,
   doctorFreeDeliveryThreshold:   1000,
+  deliveryCutoffHour:            13,
+  deliveryFastDaysMin:           1,
+  deliveryFastDaysMax:           2,
+  deliverySlowDaysMin:           2,
+  deliverySlowDaysMax:           3,
 };
 
 export async function GET() {
@@ -22,12 +27,16 @@ export async function GET() {
 
 export async function POST(req: NextRequest) {
   try {
-    const { deliveryChargePerKg, customerFreeDeliveryThreshold, doctorFreeDeliveryThreshold } = await req.json();
-
+    const body = await req.json();
     const data = {
-      deliveryChargePerKg:           Number(deliveryChargePerKg),
-      customerFreeDeliveryThreshold: Number(customerFreeDeliveryThreshold),
-      doctorFreeDeliveryThreshold:   Number(doctorFreeDeliveryThreshold),
+      deliveryChargePerKg:           Number(body.deliveryChargePerKg),
+      customerFreeDeliveryThreshold: Number(body.customerFreeDeliveryThreshold),
+      doctorFreeDeliveryThreshold:   Number(body.doctorFreeDeliveryThreshold),
+      deliveryCutoffHour:            Number(body.deliveryCutoffHour),
+      deliveryFastDaysMin:           Number(body.deliveryFastDaysMin),
+      deliveryFastDaysMax:           Number(body.deliveryFastDaysMax),
+      deliverySlowDaysMin:           Number(body.deliverySlowDaysMin),
+      deliverySlowDaysMax:           Number(body.deliverySlowDaysMax),
     };
 
     const settings = await prisma.siteSettings.upsert({

@@ -2,30 +2,43 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
-import { Heart, Star, ShoppingCart, Check, Loader2 } from "lucide-react";
+import { Heart, ShoppingCart, Check } from "lucide-react";
 import { getCustomerPricing, getDoctorPricing, type Role } from "@/lib/pricing";
+import { useCart } from "@/lib/useCart";
 
 export type ShopProductType = {
   id: string; name: string; slug: string;
   customerMrp: number; customerOfferPercent?: number | null;
   doctorMrp?: number | null; doctorPtrPrice?: number | null;
-  badge?: string | null; badgeColor: string;
+  badge?: string | null; badgeColor: string; cardColor?: string;
   mainImage: string; unit?: string | null;
   productType?: string;
+  categoryName?: string | null;
 };
 
+// Admin-selected per-product background — "purple" or "orange". Falls back
+// to alternating by index for older rows saved before this field existed.
+const IMAGE_BG = ["#EBF0FE", "#FFF1E2"];
+
+// Custom badge only ever renders green or orange now. Older rows saved with
+// "red"/"blue"/"pink" fall back to orange rather than breaking.
+function badgeBg(badgeColor: string) {
+  return badgeColor === "green" ? "var(--shop-success)" : "var(--shop-accent-amber)";
+}
+
 export default function ProductCard({
-  product, role = "CUSTOMER", isLiked = false, onToggleLike,
+  product, role = "CUSTOMER", isLiked = false, onToggleLike, index = 0,
 }: {
   product: ShopProductType | null | undefined;
   role?: Role;
   isLiked?: boolean;
   onToggleLike?: (productId: string) => void;
+  index?: number;
 }) {
   const router = useRouter();
-  const [adding, setAdding] = useState(false);
-  const [added,  setAdded]  = useState(false);
+  const { cartIds, addToCart } = useCart();
   const [heartPulse, setHeartPulse] = useState(false);
+  const [btnHover, setBtnHover] = useState(false);
 
   if (!product) return null;
 
@@ -36,22 +49,15 @@ export default function ProductCard({
   const mrp        = isDoctor ? doctorMrp : customerMrp;
   const price       = isDoctor ? ptr : offerPrice;
   const showStrike = isDoctor || hasOffer || true; // MRP always shown struck-through somewhere
-  const discount    = !isDoctor && hasOffer ? Math.round(((customerMrp - offerPrice) / customerMrp) * 100) : null;
+  const imageBg     = product.cardColor === "orange" ? "#FFF1E2" : product.cardColor === "purple" ? "#EBF0FE" : IMAGE_BG[index % IMAGE_BG.length];
+  const inCart      = cartIds.has(product.id);
 
-  const handleAddToCart = async (e: React.MouseEvent) => {
+  const goToProduct = () => router.push(`/shop/products/${product.slug}`);
+
+  const handleAddToCart = (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (adding || added) return;
-    setAdding(true);
-    try {
-      await fetch("/api/cart", {
-        method:  "POST",
-        headers: { "Content-Type": "application/json" },
-        body:    JSON.stringify({ shopProductId: product.id, quantity: 1 }),
-      });
-      setAdded(true);
-      setTimeout(() => setAdded(false), 2000);
-    } catch {}
-    finally { setAdding(false); }
+    if (inCart) return;
+    addToCart(product.id);
   };
 
   const handleToggleLike = (e: React.MouseEvent) => {
@@ -61,142 +67,144 @@ export default function ProductCard({
     onToggleLike?.(product.id);
   };
 
+  const buttonBorder = inCart
+    ? "var(--shop-primary-green)"
+    : btnHover
+      ? "var(--shop-primary-green)"
+      : "#E5E7EB";
+
   return (
     <div
-      className="flex flex-col w-full overflow-hidden"
-      style={{
-        backgroundColor: "#FFFFFF",
-        border:          "1px solid #EAEAEA",
-        borderRadius:    "16px",
-        transition:      "box-shadow 0.2s ease, transform 0.2s ease",
-        cursor:          "pointer",
-      }}
-      onMouseEnter={(e) => {
-        e.currentTarget.style.boxShadow = "0 10px 28px rgba(0,0,0,0.10)";
-        e.currentTarget.style.transform = "translateY(-3px)";
-      }}
-      onMouseLeave={(e) => {
-        e.currentTarget.style.boxShadow = "none";
-        e.currentTarget.style.transform = "translateY(0)";
-      }}
+      className="group flex flex-col w-full cursor-pointer"
+      style={{ backgroundColor: "#FFFFFF", border: "1px solid #EAEAEA", borderRadius: "16px" }}
+      onClick={goToProduct}
     >
-      {/* Image area — full white, compact padding on mobile */}
-      <div className="relative p-3.5 md:p-[22px]" style={{ backgroundColor: "#FFFFFF", aspectRatio: "1/1" }}>
-
-        {/* Badge — round pill, detached from corner */}
-        {product.badge ? (
-          <span
-            className="absolute top-2 left-2 md:top-3 md:left-3 z-10 text-[9.5px] md:text-[11px] font-extrabold px-2.5 md:px-3 py-0.5 md:py-1 text-white rounded-full uppercase tracking-wide"
-            style={{ backgroundColor: "#DC2626" }}
-          >
-            {product.badge}
-          </span>
-        ) : discount && discount > 0 ? (
-          <span
-            className="absolute top-2 left-2 md:top-3 md:left-3 z-10 text-[9.5px] md:text-[11px] font-extrabold px-2.5 md:px-3 py-0.5 md:py-1 text-white rounded-full"
-            style={{ backgroundColor: "#DC2626" }}
-          >
-            {discount}% OFF
-          </span>
-        ) : null}
-
-        {/* Wishlist — fills orange when liked, with a quick pulse on click */}
-        <button
-          type="button"
-          className="absolute top-2 right-2 md:top-3 md:right-3 z-10 flex items-center justify-center transition-transform"
-          onClick={handleToggleLike}
-          style={{ transform: heartPulse ? "scale(1.35)" : "scale(1)", transition: "transform 0.18s ease" }}
+      {/* Small padding gap + its own radius around the colored image panel */}
+      <div className="p-2.5 md:p-3">
+        <div
+          className="relative overflow-hidden"
+          style={{ backgroundColor: imageBg, borderRadius: "12px", aspectRatio: "4/3" }}
         >
-          <Heart
-            className="w-[17px] h-[17px] md:w-[22px] md:h-[22px]"
-            style={{ color: "#F97316" }}
-            strokeWidth={1.8}
-            fill={isLiked ? "#F97316" : "none"}
-          />
-        </button>
+          {/* Badge — admin custom tag only, top-left */}
+          {product.badge && (
+            <div className="absolute top-2 left-2 md:top-3 md:left-3 z-10 flex items-center gap-1">
+              <span
+                className="text-[10px] md:text-[12px] font-extrabold px-2.5 md:px-3 py-0.5 md:py-1 text-white rounded-full uppercase tracking-wide"
+                style={{ backgroundColor: badgeBg(product.badgeColor) }}
+              >
+                {product.badge}
+              </span>
+            </div>
+          )}
 
-        <img
-          src={product.mainImage}
-          alt={product.name}
-          onClick={() => router.push(`/shop/products/${product.slug}`)}
-          style={{ width: "100%", height: "100%", objectFit: "contain", mixBlendMode: "multiply" }}
-        />
+          {/* Like — white circle, top-right, overlapping the colored panel */}
+          <button
+            type="button"
+            className="absolute top-2 right-2 md:top-3 md:right-3 z-10 flex items-center justify-center rounded-full bg-white"
+            onClick={handleToggleLike}
+            style={{
+              width: "30px",
+              height: "30px",
+              boxShadow: "0 2px 8px rgba(0,0,0,0.12)",
+              transform: heartPulse ? "scale(1.3)" : "scale(1)",
+              transition: "transform 0.18s ease",
+            }}
+          >
+            <Heart
+              className="w-[15px] h-[15px] md:w-[17px] md:h-[17px]"
+              style={{ color: "var(--shop-accent-amber)" }}
+              strokeWidth={1.8}
+              fill={isLiked ? "var(--shop-accent-amber)" : "none"}
+            />
+          </button>
+
+          {/* No mix-blend-mode here — the panel is a solid color now, not
+              white, and "multiply" was tinting product photos with it. */}
+          <img
+            src={product.mainImage}
+            alt={product.name}
+            className="transition-transform duration-1000 ease-out group-hover:scale-110"
+            style={{ width: "100%", height: "100%", objectFit: "contain" }}
+          />
+        </div>
       </div>
 
-      {/* Content — tighter padding/sizes on mobile, unchanged on desktop */}
-      <div className="p-2.5 md:p-4 flex flex-col gap-1.5 md:gap-2.5 flex-1">
+      {/* Content */}
+      <div className="px-3.5 pb-3.5 md:px-5 md:pb-5 flex flex-col gap-2 md:gap-3 flex-1">
 
-        {/* Stars */}
-        <div className="flex items-center gap-0.5">
-          {[1,2,3,4,5].map((s) => <Star key={s} className="w-[11px] h-[11px] md:w-[13px] md:h-[13px]" strokeWidth={0} fill="#E5E7EB" />)}
+        {/* Name + category caption */}
+        <div>
+          <p
+            className="text-[16px] md:text-[20px] font-bold text-gray-900 leading-snug transition-colors duration-700 ease-out group-hover:text-[var(--shop-primary-green)]"
+            style={{
+              display:         "-webkit-box",
+              WebkitLineClamp: 2,
+              WebkitBoxOrient: "vertical",
+              overflow:        "hidden",
+            }}
+          >
+            {product.name}
+          </p>
+          {product.categoryName && (
+            <p className="text-[13px] md:text-[15px] text-gray-500 mt-0.5">{product.categoryName}</p>
+          )}
         </div>
 
-        {/* Name */}
-        <p
-          className="text-[12.5px] md:text-[16px] font-bold text-gray-900 leading-snug"
-          onClick={() => router.push(`/shop/products/${product.slug}`)}
-          style={{
-            display:         "-webkit-box",
-            WebkitLineClamp: 2,
-            WebkitBoxOrient: "vertical",
-            overflow:        "hidden",
-          }}
-        >
-          {product.name}
-          {product.unit && (
-            <span className="text-gray-500 font-normal text-[11px] md:text-[13.5px]"> {product.unit}</span>
-          )}
-        </p>
-
-        {/* Price — role-aware. Customers see MRP/offer (or MRP twice if no
-            offer, for the "attraction" effect); doctors see MRP/PTR. */}
-        <div>
-          <div className="flex items-baseline gap-1.5 md:gap-2 flex-wrap">
-            <span className="text-[16px] md:text-[21px] font-extrabold text-gray-900">
+        {/* Price (left) + unit box (right) — role-aware pricing */}
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-baseline gap-1.5 md:gap-2">
+            <span className="text-[19px] md:text-[24px] font-extrabold text-gray-900">
               ₹{price.toFixed(0)}
             </span>
             {showStrike && (
-              <span className="text-[11px] md:text-[13.5px] line-through text-gray-400">
+              <span className="text-[12.5px] md:text-[15px] line-through" style={{ color: "var(--shop-error)" }}>
                 ₹{mrp.toFixed(0)}
               </span>
             )}
+            {isDoctor && <span className="text-[11px] font-semibold text-gray-400">PTR</span>}
           </div>
-          {discount && discount > 0 && (
-            <span className="text-[11px] md:text-[13px] font-bold" style={{ color: "#14532D" }}>
-              {discount}% off
+
+          {product.unit && (
+            <span
+              className="flex-shrink-0 text-[11.5px] md:text-[13px] font-semibold text-gray-600 rounded-md px-2 py-0.5 md:px-2.5 md:py-1"
+              style={{ border: "1px solid var(--shop-border)" }}
+            >
+              {product.unit}
             </span>
           )}
-          {isDoctor && <span className="text-[10.5px] font-semibold text-gray-400">PTR price</span>}
         </div>
 
-        {/* Buttons — fully round, dark green */}
-        <div className="flex gap-1.5 md:gap-2 mt-auto pt-1">
-          <button
-            type="button"
-            onClick={() => router.push(`/shop/products/${product.slug}`)}
-            className="flex-1 py-1.5 md:py-2.5 rounded-full text-[11px] md:text-[13px] font-bold text-white transition-colors"
-            style={{ backgroundColor: "#14532D" }}
-            onMouseEnter={(e) => (e.currentTarget.style.backgroundColor = "#0F3D21")}
-            onMouseLeave={(e) => (e.currentTarget.style.backgroundColor = "#14532D")}
-          >
-            Buy Now
-          </button>
-          <button
-            type="button"
-            onClick={handleAddToCart}
-            className="flex-shrink-0 flex items-center justify-center rounded-full transition-colors w-9 md:w-[44px]"
-            style={{ border: "1.5px solid #14532D", backgroundColor: added ? "#F0FDF4" : "#FFFFFF" }}
-            onMouseEnter={(e) => { if (!added) e.currentTarget.style.backgroundColor = "#F0FDF4"; }}
-            onMouseLeave={(e) => { if (!added) e.currentTarget.style.backgroundColor = "#FFFFFF"; }}
-          >
-            {adding
-              ? <Loader2 className="w-[14px] h-[14px] md:w-[17px] md:h-[17px] animate-spin" style={{ color: "#14532D" }} />
-              : added
-                ? <Check className="w-[14px] h-[14px] md:w-[17px] md:h-[17px]" style={{ color: "#14532D" }} />
-                : <ShoppingCart className="w-[14px] h-[14px] md:w-[17px] md:h-[17px]" strokeWidth={2} style={{ color: "#14532D" }} />
-            }
-          </button>
-        </div>
+        {/* Add to Cart — outlined grey by default, smoothly turns primary green
+            (fill + border) on hover. Once added, stays a green confirmation —
+            no remove-from-here toggle. No lift, just the color transition. */}
+        <button
+          type="button"
+          onClick={handleAddToCart}
+          onMouseEnter={() => setBtnHover(true)}
+          onMouseLeave={() => setBtnHover(false)}
+          className="w-full flex items-center justify-center gap-2 py-2.5 md:py-3 rounded-full text-[13.5px] md:text-[15px] font-bold mt-auto"
+          style={{
+            backgroundColor: inCart ? "var(--shop-primary-green)" : btnHover ? "var(--shop-primary-green)" : "#F3F4F6",
+            border: `1.5px solid ${buttonBorder}`,
+            color: inCart || btnHover ? "#FFFFFF" : "#111827",
+            transition:
+              "background-color 700ms cubic-bezier(0.22,1,0.36,1), " +
+              "border-color 700ms cubic-bezier(0.22,1,0.36,1), " +
+              "color 700ms cubic-bezier(0.22,1,0.36,1)",
+          }}
+        >
+          {inCart ? (
+            <>
+              <Check className="w-[14px] h-[14px] md:w-[16px] md:h-[16px]" />
+              Added to Cart
+            </>
+          ) : (
+            <>
+              <ShoppingCart className="w-[14px] h-[14px] md:w-[16px] md:h-[16px]" strokeWidth={2} />
+              Add to Cart
+            </>
+          )}
+        </button>
       </div>
     </div>
   );

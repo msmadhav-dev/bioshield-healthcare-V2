@@ -20,8 +20,9 @@ function MobileBannerSlot({
   );
 }
 
-// Mobile-only ordering: banner 1 → categories → row 1 → banner 2 → row 2 →
-// banner 3 → row 3 → banner 4 → remaining rows. Desktop keeps its own layout below.
+// Mobile-only ordering: banner 1 (top) → categories → row 1 → banner 2 →
+// row 2 → banner 3 → row 3 → banner 4 → row 4 → banner 5 → remaining rows.
+// Desktop keeps its own layout below.
 function MobileShopLayout() {
   const ads      = useAdvertisements();
   const sections = useShopSections();
@@ -37,22 +38,28 @@ function MobileShopLayout() {
       {sections[0] && <SectionRow section={sections[0]} />}
 
       <div className="py-3" style={{ backgroundColor: "#FFFFFF" }}>
-        <MobileBannerSlot slot={2} ads={ads} height="185px" />
+        <MobileBannerSlot slot={2} ads={ads} height="340px" />
       </div>
 
       {sections[1] && <SectionRow section={sections[1]} />}
 
       <div className="py-3" style={{ backgroundColor: "#FFFFFF" }}>
-        <MobileBannerSlot slot={3} ads={ads} height="185px" />
+        <MobileBannerSlot slot={3} ads={ads} height="340px" />
       </div>
 
       {sections[2] && <SectionRow section={sections[2]} />}
 
       <div className="py-3" style={{ backgroundColor: "#FFFFFF" }}>
-        <MobileBannerSlot slot={4} ads={ads} height="185px" />
+        <MobileBannerSlot slot={4} ads={ads} height="340px" />
       </div>
 
-      {sections.slice(3).map((s) => <SectionRow key={s.id} section={s} />)}
+      {sections[3] && <SectionRow section={sections[3]} />}
+
+      <div className="py-3" style={{ backgroundColor: "#FFFFFF" }}>
+        <MobileBannerSlot slot={5} ads={ads} height="340px" />
+      </div>
+
+      {sections.slice(4).map((s) => <SectionRow key={s.id} section={s} />)}
     </div>
   );
 }

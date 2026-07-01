@@ -8,7 +8,7 @@ import { useUserRole } from "@/lib/useUserRole";
 import { useLikedProducts } from "@/lib/useLikedProducts";
 import type { Role } from "@/lib/pricing";
 
-const CARD_WIDTH = 260;
+const CARD_WIDTH = 340;
 
 function HorizontalProductRow({
   products, role, likedIds, onToggleLike,
@@ -85,7 +85,7 @@ function HorizontalProductRow({
   };
 
   return (
-    <div className="relative">
+    <div className="relative py-4" style={{ backgroundColor: "#F8F8F8" }}>
       {canLeft && (
         <button
           type="button"
@@ -106,15 +106,15 @@ function HorizontalProductRow({
         className="flex gap-3 overflow-x-auto px-4 md:px-14 pb-3 select-none"
         style={{ scrollbarWidth: "none", msOverflowStyle: "none", cursor: "grab", overscrollBehaviorX: "contain" }}
       >
-        {list.map((product) => (
+        {list.map((product, index) => (
           <div
             key={product.id}
-            className="flex-shrink-0 w-[148px] md:w-[260px]"
+            className="flex-shrink-0 w-[215px] md:w-[340px]"
             onClickCapture={(e) => {
               if (dragState.current.moved) { e.preventDefault(); e.stopPropagation(); }
             }}
           >
-            <ProductCard product={product} role={role} isLiked={likedIds.has(product.id)} onToggleLike={onToggleLike} />
+            <ProductCard product={product} role={role} isLiked={likedIds.has(product.id)} onToggleLike={onToggleLike} index={index} />
           </div>
         ))}
       </div>
@@ -174,9 +174,13 @@ export function SectionRow({ section }: { section: Section }) {
       transition={{ duration: 0.5 }}
       className="w-full py-5 bg-white"
     >
-      <div className="px-4 md:px-14 mb-4">
-        <h2 className="text-[19px] md:text-[21px] font-extrabold text-gray-900">{section.name}</h2>
-        {section.subtitle && <p className="text-[13px] text-gray-500 mt-0.5">{section.subtitle}</p>}
+      <div className="mx-auto w-full max-w-[1320px] px-4 xl:px-0 mb-5">
+        <div className="flex items-center justify-between border-b border-[#E4EAF1] pb-7">
+          <h2 className="text-[30px] font-bold leading-tight text-[#071D3A] sm:text-[36px] whitespace-nowrap">
+            {section.name}
+          </h2>
+        </div>
+        {section.subtitle && <p className="text-[13px] text-gray-500 mt-2">{section.subtitle}</p>}
       </div>
 
       <HorizontalProductRow products={products} role={role} likedIds={likedIds} onToggleLike={toggleLike} />

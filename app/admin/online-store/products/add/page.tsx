@@ -3,11 +3,16 @@
 import { useState, useRef, useEffect } from "react";
 import { Upload, X, Loader2, CheckCircle, Plus, Trash2, Search } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { convertToGrams } from "@/lib/pricing";
 
 const BADGE_COLORS = [
-  { value: "red",  label: "Red",  bg: "#FEE2E2", color: "#DC2626" },
-  { value: "blue", label: "Blue", bg: "#DBEAFE", color: "#2563EB" },
-  { value: "pink", label: "Pink", bg: "#FCE7F3", color: "#DB2777" },
+  { value: "green",  label: "Green",  bg: "#DCFCE7", color: "#15803D" },
+  { value: "orange", label: "Orange", bg: "#FEF3C7", color: "#B45309" },
+];
+
+const CARD_COLORS = [
+  { value: "purple", label: "Purple", swatch: "#EBF0FE" },
+  { value: "orange", label: "Orange", swatch: "#FFF1E2" },
 ];
 
 const PRODUCT_TYPES = [
@@ -93,7 +98,8 @@ export default function AddShopProduct() {
   // Product Card Info — name, badge, image ONLY
   const [name,          setName]         = useState("");
   const [badge,         setBadge]        = useState("");
-  const [badgeColor,    setBadgeColor]   = useState("red");
+  const [badgeColor,    setBadgeColor]   = useState("green");
+  const [cardColor,     setCardColor]    = useState("purple");
 
   // Pricing — customer & doctor, split
   const [customerMrp,          setCustomerMrp]          = useState("");
@@ -109,6 +115,7 @@ export default function AddShopProduct() {
   const [stock, setStock] = useState("");
   const [productType,   setProductType]   = useState("OTHER");
   const [weightInGrams, setWeightInGrams] = useState("");
+  const [weightUnit,    setWeightUnit]    = useState<"G" | "ML" | "L">("G");
 
   // Section / category
   const [sectionId,    setSectionId]   = useState("");
@@ -239,6 +246,7 @@ export default function AddShopProduct() {
           name:                 name.trim(),
           badge:                badge || null,
           badgeColor,
+          cardColor,
           mainImage:            imgRefs.current.main,
           images:               imgRefs.current.extra,
           categoryId:           categoryId || null,
@@ -262,7 +270,8 @@ export default function AddShopProduct() {
           taxPercent:           taxPercent || null,
 
           productType,
-          weightInGrams:        weightInGrams || null,
+          weightInGrams: weightInGrams ? convertToGrams(Number(weightInGrams), weightUnit) : null,
+          weightUnit,
         }),
       });
       const data = await res.json();
@@ -317,6 +326,7 @@ export default function AddShopProduct() {
                 <input type="text" value={badge} onChange={(e) => setBadge(e.target.value)}
                   placeholder="e.g. New, Sale" className={inputCls} style={inputStyle}
                   onFocus={onFocus} onBlur={onBlur} />
+                <p className="text-[11px] text-gray-400 mt-1">Shown on the product card, next to the discount badge.</p>
               </div>
               <div>
                 <label className="block text-[12px] font-semibold text-gray-700 mb-1.5">Badge Color</label>
@@ -333,6 +343,25 @@ export default function AddShopProduct() {
                     </button>
                   ))}
                 </div>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-[12px] font-semibold text-gray-700 mb-1.5">Card Background Color</label>
+              <p className="text-[11px] text-gray-400 mb-2">Background behind the product image on shop listing cards.</p>
+              <div className="flex gap-2">
+                {CARD_COLORS.map((c) => (
+                  <button key={c.value} type="button" onClick={() => setCardColor(c.value)}
+                    className="flex items-center gap-2 px-3 py-1.5 rounded-full text-[11px] font-semibold border-2 transition-all"
+                    style={{
+                      borderColor: cardColor === c.value ? "var(--shop-primary-green, #17653A)" : "#E5E7EB",
+                      backgroundColor: cardColor === c.value ? "#F0FDF4" : "transparent",
+                      color: "#374151",
+                    }}>
+                    <span className="w-4 h-4 rounded-full flex-shrink-0" style={{ backgroundColor: c.swatch, border: "1px solid #E5E7EB" }} />
+                    {c.label}
+                  </button>
+                ))}
               </div>
             </div>
 
@@ -462,14 +491,26 @@ export default function AddShopProduct() {
             <div>
               <label className="block text-[12px] font-semibold text-gray-700 mb-1.5">
                 Weight <span className="text-gray-400 font-normal">
-                  {productType === "TABLET" ? "(not used for tablets)" : "(grams — used for delivery calculation)"}
+                  {productType === "TABLET" ? "(not used for tablets)" : "(used for delivery weight calculation)"}
                 </span>
               </label>
-              <input type="number" value={weightInGrams} onChange={(e) => setWeightInGrams(e.target.value)}
-                placeholder="e.g. 300" disabled={productType === "TABLET"}
-                className={inputCls} style={{ ...inputStyle, maxWidth: "200px", opacity: productType === "TABLET" ? 0.5 : 1 }}
-                onFocus={onFocus} onBlur={onBlur} />
-              <p className="text-[10px] text-gray-400 mt-1">For liquids, enter the ml amount here as grams (1ml ≈ 1g).</p>
+              <div className="flex gap-2">
+                <input type="number" value={weightInGrams} onChange={(e) => setWeightInGrams(e.target.value)}
+                  placeholder="e.g. 300" disabled={productType === "TABLET"}
+                  className={inputCls} style={{ ...inputStyle, maxWidth: "160px", opacity: productType === "TABLET" ? 0.5 : 1 }}
+                  onFocus={onFocus} onBlur={onBlur} />
+                <select value={weightUnit} onChange={(e) => setWeightUnit(e.target.value as "G" | "ML" | "L")}
+                  disabled={productType === "TABLET"}
+                  className="px-3 py-2.5 text-[13px] outline-none cursor-pointer"
+                  style={{ ...inputStyle, opacity: productType === "TABLET" ? 0.5 : 1 }}>
+                  <option value="G">Grams (g)</option>
+                  <option value="ML">Millilitres (ml)</option>
+                  <option value="L">Litres (L)</option>
+                </select>
+              </div>
+              <p className="text-[10px] text-gray-400 mt-1">
+                Litres are automatically converted to grams (1L = 1000g) when saved — the calculation always uses grams.
+              </p>
             </div>
 
             <div>
