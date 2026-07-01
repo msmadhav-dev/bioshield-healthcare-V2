@@ -101,6 +101,25 @@ model ShopProduct {
   @@map("shop_products")
 }
 
+model Poster {
+  id        String   @id @default(cuid())
+  image     String
+  linkUrl   String?
+  order     Int      @default(0)
+  createdAt DateTime @default(now())
+
+  @@map("posters")
+}
+
+model PosterSectionConfig {
+  id        String   @id @default("global")
+  enabled   Boolean  @default(false)
+  position  Int      @default(0) // insert after the Nth shop section (0 = before all sections)
+  updatedAt DateTime @updatedAt
+
+  @@map("poster_section_config")
+}
+
 model ShopSection {
   id                    String   @id @default(cuid())
   name                  String

@@ -49,6 +49,13 @@ const storeItems = [
     ],
   },
   {
+    label: "Posters",
+    icon:  Megaphone,
+    sub: [
+      { label: "Manage Posters", href: "/admin/online-store/posters", icon: Eye },
+    ],
+  },
+  {
     label: "Products",
     icon:  Package,
     sub: [
@@ -122,7 +129,7 @@ function NavGroup({
 
 export default function Sidebar() {
   const pathname = usePathname();
-  const [open, setOpen] = useState<string[]>(["Product Cards", "Categories", "Advertisements", "Sections", "Products"]);
+  const [open, setOpen] = useState<string[]>(["Product Cards", "Categories", "Advertisements", "Sections", "Posters", "Products"]);
   const toggle = (label: string) =>
     setOpen((p) => p.includes(label) ? p.filter((l) => l !== label) : [...p, label]);
 

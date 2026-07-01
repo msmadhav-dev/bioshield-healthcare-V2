@@ -85,7 +85,7 @@ function HorizontalProductRow({
   };
 
   return (
-    <div className="relative py-4" style={{ backgroundColor: "#F8F8F8" }}>
+    <div className="relative py-4" style={{ backgroundColor: "#Ffffff" }}>
       {canLeft && (
         <button
           type="button"
